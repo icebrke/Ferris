@@ -60,7 +60,7 @@
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
-    const crabSize = grid * 1.5;
+    let crabSize = grid * 1.5; // Начальный размер краба
     const freakyBirdSize = crabSize * 2;
     const bonusSize = grid * 2;
     let crab = [{ x: 400, y: 300 }];
@@ -70,6 +70,7 @@
     let freakyBird = null;
     let score = 0;
     let gameStarted = false;
+    let gameWon = false; // Флаг победы
     let frame = 0;
     const frameDelay = 12;
     let obstaclesCleared = false;
@@ -155,7 +156,7 @@
       let newFood;
       let attempts = 0;
       const maxAttempts = 100;
-      const minDistanceFromObstacles = 2 * grid; // Минимальное расстояние от препятствий: 2 клетки (40 пикселей)
+      const minDistanceFromObstacles = 2 * grid;
 
       do {
         newFood = {
@@ -283,7 +284,7 @@
 
     // Движение FreakyBird к крабу
     function moveFreakyBird() {
-      if (!freakyBird) return;
+      if (!freakyBird || gameWon) return;
 
       const crabHead = crab[0];
       const deltaX = crabHead.x - freakyBird.x;
@@ -310,6 +311,8 @@
       bonus = null;
       score = 0;
       gameStarted = false;
+      gameWon = false;
+      crabSize = grid * 1.5; // Сбрасываем размер краба
       freakyBird = null;
       obstaclesCleared = false;
       obstaclesClearedTime = 0;
@@ -323,7 +326,7 @@
 
     // Управление (стрелки + WASD)
     document.addEventListener("keydown", e => {
-      if (!gameStarted) return;
+      if (!gameStarted || gameWon) return;
       if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && dx === 0) { dx = -grid; dy = 0; }
       if ((e.key === "ArrowRight" || e.key.toLowerCase() === "d") && dx === 0) { dx = grid; dy = 0; }
       if ((e.key === "ArrowUp" || e.key.toLowerCase() === "w") && dy === 0) { dy = -grid; dx = 0; }
@@ -338,74 +341,85 @@
 
       if (++frame % frameDelay !== 0) return;
 
-      const head = { x: crab[0].x + dx, y: crab[0].y + dy };
+      if (!gameWon) {
+        const head = { x: crab[0].x + dx, y: crab[0].y + dy };
 
-      // Телепортация при столкновении со стенами
-      if (head.x < 0) head.x = canvas.width - grid;
-      if (head.x >= canvas.width) head.x = 0;
-      if (head.y < 0) head.y = canvas.height - grid;
-      if (head.y >= canvas.height) head.y = 0;
+        // Телепортация при столкновении со стенами
+        if (head.x < 0) head.x = canvas.width - grid;
+        if (head.x >= canvas.width) head.x = 0;
+        if (head.y < 0) head.y = canvas.height - grid;
+        if (head.y >= canvas.height) head.y = 0;
 
-      // Столкновение с препятствиями
-      const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
-      if (hasObstacleCollision && !obstacleImmunity) {
-        if (gameOverSound) gameOverSound.play();
-        alert("Game Over! Score: " + score);
-        resetGame();
-        return;
-      }
-
-      crab.unshift(head);
-
-      // Сбор еды
-      if (head.x === food.x && head.y === food.y) {
-        score++;
-        if (eatSound) eatSound.play();
-        food = randomFood();
-        if (!obstaclesCleared && score % 3 === 0) {
-          spawnObstacle();
+        // Столкновение с препятствиями
+        const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
+        if (hasObstacleCollision && !obstacleImmunity) {
+          if (gameOverSound) gameOverSound.play();
+          alert("Game Over! Score: " + score);
+          resetGame();
+          return;
         }
 
-        // Управление появлением и исчезновением FreakyBird
-        if (score === 20 || score === 50 || score === 100) {
-          spawnFreakyBird();
-        } else if (score === 25 || score === 55 || score === 105) {
-          removeFreakyBird();
+        crab.unshift(head);
+
+        // Сбор еды
+        if (head.x === food.x && head.y === food.y) {
+          score++;
+          if (eatSound) eatSound.play();
+          food = randomFood();
+          if (!obstaclesCleared && score % 3 === 0) {
+            spawnObstacle();
+          }
+
+          // Управление появлением и исчезновением FreakyBird
+          if (score === 20 || score === 50 || score === 75) {
+            spawnFreakyBird();
+          } else if (score === 25 || score === 55 || score === 80) {
+            removeFreakyBird();
+          }
+
+          // Победа на 100 очках
+          if (score === 100) {
+            gameWon = true;
+            obstacles = []; // Удаляем препятствия
+            crabSize = grid * 3; // Увеличиваем размер краба
+            freakyBird = null; // Удаляем FreakyBird
+            console.log("You won! Crab size increased, obstacles removed.");
+          }
         }
-      }
-      // Сбор бонуса
-      else if (bonus && head.x === bonus.x && head.y === bonus.y) {
-        score += 5;
-        if (bonusSound) bonusSound.play();
-        obstacles = [];
-        obstaclesCleared = true;
-        obstaclesClearedTime = frame;
-        bonus = null;
-      } else {
-        crab.pop();
-      }
+        // Сбор бонуса
+        else if (bonus && head.x === bonus.x && head.y === bonus.y) {
+          score += 5;
+          if (bonusSound) bonusSound.play();
+          obstacles = [];
+          obstaclesCleared = true;
+          obstaclesClearedTime = frame;
+          bonus = null;
+        } else {
+          crab.pop();
+        }
 
-      // Пробуем заспавнить новый бонус
-      trySpawnBonus();
+        // Пробуем заспавнить новый бонус
+        trySpawnBonus();
 
-      // Проверяем, прошло ли 15 секунд для возвращения препятствий
-      if (obstaclesCleared && (frame - obstaclesClearedTime) >= obstaclesClearDuration) {
-        restoreObstacles();
-        obstaclesCleared = false;
-        obstaclesClearedTime = 0;
-        obstacleImmunity = true;
-        obstacleImmunityTime = frame;
-        console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
+        // Проверяем, прошло ли 15 секунд для возвращения препятствий
+        if (obstaclesCleared && (frame - obstaclesClearedTime) >= obstaclesClearDuration) {
+          restoreObstacles();
+          obstaclesCleared = false;
+          obstaclesClearedTime = 0;
+          obstacleImmunity = true;
+          obstacleImmunityTime = frame;
+          console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
+        }
+
+        // Проверяем, закончился ли иммунитет
+        if (obstacleImmunity && (frame - obstacleImmunityTime) >= obstacleImmunityDuration) {
+          obstacleImmunity = false;
+          console.log("Crab immunity ended!");
+        }
+
+        // Движение FreakyBird
+        moveFreakyBird();
       }
-
-      // Проверяем, закончился ли иммунитет
-      if (obstacleImmunity && (frame - obstacleImmunityTime) >= obstacleImmunityDuration) {
-        obstacleImmunity = false;
-        console.log("Crab immunity ended!");
-      }
-
-      // Движение FreakyBird
-      moveFreakyBird();
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -429,6 +443,14 @@
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
       ctx.fillText("Score: " + score, 10, 20);
+
+      // Отображение надписи при победе
+      if (gameWon) {
+        ctx.fillStyle = "#ff69b4";
+        ctx.font = "bold 40px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("CONGRATS! U PRUVED UR LOVE TO FERRIS!", canvas.width / 2, canvas.height / 2);
+      }
     }
 
     // Запуск игры по кнопке
