@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Краб ест Succinct</title>
+  <style>
+    body {
+      background-color: #ffe0f0;
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #ffcce6;
+      border: 5px solid #ff99cc;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="600" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const grid = 20;
+    let crab = [{ x: 300, y: 200 }];
+    let dx = grid, dy = 0;
+    let food = randomFood();
+    let score = 0;
+    const foodImg = new Image();
+    foodImg.src = "succinct.png"; // помести PNG рядом
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft" && dx === 0) { dx = -grid; dy = 0; }
+      if (e.key === "ArrowRight" && dx === 0) { dx = grid; dy = 0; }
+      if (e.key === "ArrowUp" && dy === 0) { dy = -grid; dx = 0; }
+      if (e.key === "ArrowDown" && dy === 0) { dy = grid; dx = 0; }
+    });
+
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
+        y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+      };
+    }
+
+    function loop() {
+      requestAnimationFrame(loop);
+      if (++frame % 6 !== 0) return;
+
+      const head = { x: crab[0].x + dx, y: crab[0].y + dy };
+
+      // Столкновения
+      if (head.x < 0 || head.y < 0 || head.x >= canvas.width || head.y >= canvas.height ||
+          crab.some(seg => seg.x === head.x && seg.y === head.y)) {
+        alert("Игра окончена! Очки: " + score);
+        crab = [{ x: 300, y: 200 }];
+        dx = grid; dy = 0;
+        food = randomFood();
+        score = 0;
+        return;
+      }
+
+      crab.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        food = randomFood();
+      } else {
+        crab.pop();
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Рисуем еду (логотип)
+      ctx.drawImage(foodImg, food.x, food.y, grid, grid);
+
+      // Рисуем краба
+      ctx.fillStyle = "#ff69b4";
+      crab.forEach(seg => ctx.fillRect(seg.x, seg.y, grid, grid));
+
+      // Очки
+      ctx.fillStyle = "#fff";
+      ctx.font = "20px Arial";
+      ctx.fillText("Очки: " + score, 10, 20);
+    }
+
+    let frame = 0;
+    loop();
+  </script>
+</body>
+</html>
