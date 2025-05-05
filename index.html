@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crab Eats Succinct</title>
+  <title>Краб Ест Succinct</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -37,7 +37,7 @@
   </style>
 </head>
 <body>
-  <button id="startButton">Start Game</button>
+  <button id="startButton">Начать Игру</button>
   <canvas id="game" width="600" height="400"></canvas>
   <script>
     const canvas = document.getElementById("game");
@@ -45,7 +45,7 @@
     const startButton = document.getElementById("startButton");
 
     const grid = 20;
-    const crabSize = grid * 1.5; // Make the crab 1.5x larger than the grid
+    const crabSize = grid * 1.5; // Краб в 1.5 раза больше клетки
     let crab = [{ x: 300, y: 200 }];
     let dx = grid, dy = 0;
     let food = randomFood();
@@ -53,7 +53,7 @@
     let gameStarted = false;
     let frame = 0;
 
-    // Define obstacles (array of {x, y} positions)
+    // Препятствия (массив координат {x, y})
     const obstacles = [
       { x: 100, y: 100 },
       { x: 100, y: 120 },
@@ -62,18 +62,18 @@
       { x: 200, y: 200 },
     ];
 
-    // Load images
+    // Загрузка изображений
     const foodImg = new Image();
     foodImg.src = "succinct.png";
     const crabImg = new Image();
     crabImg.src = "crab.png";
 
-    // Load sound effects
+    // Загрузка звуков
     const startSound = new Audio("start.mp3");
     const eatSound = new Audio("eat.mp3");
     const gameOverSound = new Audio("gameover.mp3");
 
-    // Controls (Arrow keys + WASD)
+    // Управление (стрелки + WASD)
     document.addEventListener("keydown", e => {
       if (!gameStarted) return;
       if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && dx === 0) { dx = -grid; dy = 0; }
@@ -82,7 +82,7 @@
       if ((e.key === "ArrowDown" || e.key.toLowerCase() === "s") && dy === 0) { dy = grid; dx = 0; }
     });
 
-    // Generate food (ensure it doesn't spawn on obstacles)
+    // Генерация еды (чтобы не появлялась на препятствиях)
     function randomFood() {
       let newFood;
       do {
@@ -94,7 +94,7 @@
       return newFood;
     }
 
-    // Main game loop
+    // Основной игровой цикл
     function loop() {
       if (!gameStarted) return;
 
@@ -103,17 +103,17 @@
 
       const head = { x: crab[0].x + dx, y: crab[0].y + dy };
 
-      // Wrap around instead of dying when hitting walls
+      // Телепортация при столкновении со стенами
       if (head.x < 0) head.x = canvas.width - grid;
       if (head.x >= canvas.width) head.x = 0;
       if (head.y < 0) head.y = canvas.height - grid;
       if (head.y >= canvas.height) head.y = 0;
 
-      // Collision with obstacles or self
+      // Столкновение с препятствиями или самим собой
       if (obstacles.some(ob => ob.x === head.x && ob.y === head.y) ||
           crab.some(seg => seg.x === head.x && seg.y === head.y)) {
         gameOverSound.play();
-        alert("Game Over! Score: " + score);
+        alert("Игра Окончена! Очки: " + score);
         crab = [{ x: 300, y: 200 }];
         dx = grid; dy = 0;
         food = randomFood();
@@ -136,23 +136,23 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw obstacles
+      // Отрисовка препятствий
       ctx.fillStyle = "#666";
       obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, grid, grid));
 
-      // Draw food (Succinct logo)
+      // Отрисовка еды (логотип Succinct)
       ctx.drawImage(foodImg, food.x, food.y, grid, grid);
 
-      // Draw crab (larger size)
+      // Отрисовка краба (увеличенного)
       crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, crabSize, crabSize));
 
-      // Score display
+      // Отображение очков
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
-      ctx.fillText("Score: " + score, 10, 20);
+      ctx.fillText("Очки: " + score, 10, 20);
     }
 
-    // Start game on button click
+    // Запуск игры по кнопке
     startButton.addEventListener("click", () => {
       if (!gameStarted) {
         gameStarted = true;
