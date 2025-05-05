@@ -70,10 +70,10 @@
     let score = 0;
     let gameStarted = false;
     let frame = 0;
-    let frameDelay = 12;
+    const frameDelay = 12; // Фиксированная скорость
     let obstaclesCleared = false;
-    let obstaclesClearedTime = 0; // Время, когда препятствия были убраны
-    const obstaclesClearDuration = 15 * 60; // 15 секунд при 60 кадрах в секунду
+    let obstaclesClearedTime = 0;
+    const obstaclesClearDuration = 15 * 60;
 
     // Препятствия
     let obstacles = [
@@ -141,7 +141,6 @@
       if (imagesLoaded === totalImages) {
         console.log("All images loaded");
         food = randomFood();
-        // Бонус изначально не появляется
         bonus = null;
         startButton.disabled = false;
       }
@@ -150,31 +149,71 @@
     // Генерация еды
     function randomFood() {
       let newFood;
+      let attempts = 0;
+      const maxAttempts = 100;
       do {
         newFood = {
           x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
           y: Math.floor(Math.random() * (canvas.height / grid)) * grid
         };
+        attempts++;
+        if (attempts > maxAttempts) {
+          console.error("Cannot find a safe position for food!");
+          newFood = { x: 400, y: 200 }; // Запасная позиция
+          break;
+        }
       } while (obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y));
       return newFood;
     }
 
-    // Генерация бонуса (с вероятностью)
+    // Генерация нового препятствия
+    function spawnObstacle() {
+      let newObstacle;
+      let attempts = 0;
+      const maxAttempts = 100;
+      do {
+        newObstacle = {
+          x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
+          y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+        };
+        attempts++;
+        if (attempts > maxAttempts) {
+          console.error("Cannot find a safe position for new obstacle!");
+          return; // Если не нашли место, пропускаем
+        }
+      } while (
+        obstacles.some(ob => ob.x === newObstacle.x && ob.y === newObstacle.y) ||
+        (newObstacle.x === food.x && newObstacle.y === food.y) ||
+        (bonus && newObstacle.x === bonus.x && newObstacle.y === bonus.y) ||
+        crab.some(seg => seg.x === newObstacle.x && seg.y === newObstacle.y)
+      );
+      obstacles.push(newObstacle);
+      console.log("New obstacle spawned! Total obstacles:", obstacles.length);
+    }
+
+    // Генерация бонуса (с очень низкой вероятностью)
     function trySpawnBonus() {
-      // Если бонус уже есть или препятствия сейчас убраны, не спавним
       if (bonus || obstaclesCleared) return;
 
-      // 1% шанс за кадр (примерно раз в 100 кадров)
-      if (Math.random() < 0.01) {
+      // 0.1% шанс за кадр (примерно раз в 1000 кадров)
+      if (Math.random() < 0.001) {
         let newBonus;
+        let attempts = 0;
+        const maxAttempts = 100;
         do {
           newBonus = {
             x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
             y: Math.floor(Math.random() * (canvas.height / grid)) * grid
           };
+          attempts++;
+          if (attempts > maxAttempts) {
+            console.error("Cannot find a safe position for bonus!");
+            return;
+          }
         } while (
           obstacles.some(ob => ob.x === newBonus.x && ob.y === newBonus.y) ||
-          (newBonus.x === food.x && newBonus.y === food.y)
+          (newBonus.x === food.x && newBonus.y === food.y) ||
+          crab.some(seg => seg.x === newBonus.x && seg.y === newBonus.y)
         );
         bonus = newBonus;
         console.log("Bonus spawned!");
@@ -189,6 +228,10 @@
         { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
         { x: 500, y: 200 }, { x: 100, y: 500 },
       ];
+      // Добавляем дополнительные препятствия в зависимости от текущего счета
+      for (let i = 0; i < score; i++) {
+        spawnObstacle();
+      }
     }
 
     // Генерация FreakyBird при достижении 30 очков
@@ -214,7 +257,6 @@
         freakyBird.y += (deltaY / distance) * freakyBird.speed;
       }
 
-      // Проверка на столкновение с крабом
       if (Math.abs(freakyBird.x - crabHead.x) < grid && Math.abs(freakyBird.y - crabHead.y) < grid) {
         if (gameOverSound) gameOverSound.play();
         alert("Game Over! FreakyBird caught you! Score: " + score);
@@ -227,9 +269,8 @@
       crab = [{ x: 400, y: 300 }];
       dx = grid; dy = 0;
       food = randomFood();
-      bonus = null; // Бонус не появляется сразу
+      bonus = null;
       score = 0;
-      frameDelay = 12;
       gameStarted = false;
       freakyBird = null;
       obstaclesCleared = false;
@@ -254,8 +295,6 @@
       if (!gameStarted) return;
 
       requestAnimationFrame(loop);
-
-      frameDelay = Math.max(6, 12 - Math.floor(score / 2));
 
       if (++frame % frameDelay !== 0) return;
 
@@ -283,15 +322,18 @@
         score++;
         if (eatSound) eatSound.play();
         food = randomFood();
+        if (!obstaclesCleared) {
+          spawnObstacle(); // Добавляем новое препятствие при сборе еды
+        }
       }
       // Сбор бонуса
       else if (bonus && head.x === bonus.x && head.y === bonus.y) {
         score += 5;
         if (bonusSound) bonusSound.play();
-        obstacles = []; // Удаляем все препятствия
+        obstacles = [];
         obstaclesCleared = true;
-        obstaclesClearedTime = frame; // Запоминаем время
-        bonus = null; // Бонус исчезает
+        obstaclesClearedTime = frame;
+        bonus = null;
       } else {
         crab.pop();
       }
