@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Crab Eats Succinct</title>
   <style>
     body {
@@ -21,7 +21,6 @@
       margin: auto;
       background: #ffcce6;
       border: 5px solid #ff99cc;
-      touch-action: none;
     }
     button {
       padding: 15px 30px;
@@ -48,68 +47,19 @@
     .twitter-link:hover {
       color: #ff99cc;
     }
-    /* Стили для виртуальных кнопок */
-    .controls {
-      display: none; /* Скрыты по умолчанию, показываем на мобильных */
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-    }
-    .control-button {
-      width: 60px;
-      height: 60px;
-      background-color: #ff69b4;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 24px;
-      margin: 5px;
-      cursor: pointer;
-      touch-action: none;
-    }
-    .control-button:active {
-      background-color: #ff99cc;
-    }
-    .control-row {
-      display: flex;
-      justify-content: center;
-    }
-    @media (max-width: 768px) {
-      .controls {
-        display: block; /* Показываем кнопки на мобильных устройствах */
-      }
-    }
   </style>
 </head>
 <body>
   <button id="startButton">Start Game</button>
   <button id="restartButton" style="display: none;">Restart</button>
-  <a href="https://twitter.com/YourTwitterHandle" class="twitter-link" id="twitterLink" target="_blank">@YourTwitterHandle</a>
-  <canvas id="game"></canvas>
-  <!-- Виртуальные кнопки для управления -->
-  <div class="controls" id="controls">
-    <div class="control-row">
-      <button class="control-button" id="upButton">↑</button>
-    </div>
-    <div class="control-row">
-      <button class="control-button" id="leftButton">←</button>
-      <button class="control-button" id="downButton">↓</button>
-      <button class="control-button" id="rightButton">→</button>
-    </div>
-  </div>
+  <a href="https://twitter.com/eeelohater" class="twitter-link" id="twitterLink" target="_blank">ICEBRKE</a>
+  <canvas id="game" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const startButton = document.getElementById("startButton");
     const restartButton = document.getElementById("restartButton");
     const twitterLink = document.getElementById("twitterLink");
-    const controls = document.getElementById("controls");
-    const upButton = document.getElementById("upButton");
-    const downButton = document.getElementById("downButton");
-    const leftButton = document.getElementById("leftButton");
-    const rightButton = document.getElementById("rightButton");
 
     const grid = 20;
     let crabSize = grid * 1.5;
@@ -131,46 +81,6 @@
     let obstacleImmunity = false;
     let obstacleImmunityTime = 0;
     const obstacleImmunityDuration = 5 * 60;
-
-    // Переменные для сенсорного управления (свайпы)
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let touchEndX = 0;
-    let touchEndY = 0;
-    const swipeThreshold = 30;
-
-    // Определение, является ли устройство мобильным
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/.test(navigator.userAgent);
-
-    // Адаптивное масштабирование канваса
-    function resizeCanvas() {
-      const maxWidth = window.innerWidth;
-      const maxHeight = window.innerHeight;
-      const aspectRatio = 800 / 600; // Соотношение сторон канваса
-
-      let newWidth = maxWidth;
-      let newHeight = maxWidth / aspectRatio;
-
-      if (newHeight > maxHeight) {
-        newHeight = maxHeight;
-        newWidth = maxHeight * aspectRatio;
-      }
-
-      canvas.width = 800;
-      canvas.height = 600;
-      canvas.style.width = `${newWidth}px`;
-      canvas.style.height = `${newHeight}px`;
-
-      // Масштабирование содержимого канваса
-      const scaleX = newWidth / 800;
-      const scaleY = newHeight / 600;
-      ctx.scale(scaleX, scaleY);
-    }
-
-    // Вызываем масштабирование при загрузке и изменении размера окна
-    window.addEventListener("resize", resizeCanvas);
-    window.addEventListener("orientationchange", resizeCanvas);
-    resizeCanvas();
 
     // Препятствия
     let obstacles = [
@@ -428,98 +338,26 @@
       startButton.style.display = "block";
       restartButton.style.display = "none";
       twitterLink.style.display = "block";
-      if (isMobile) {
-        controls.style.display = "none";
-      }
     }
 
-    // Управление с клавиатуры (стрелки + WASD)
+    // Управление (стрелки + WASD с поддержкой раскладок)
     document.addEventListener("keydown", e => {
       if (!gameStarted || gameWon) return;
 
+      // Используем event.code для определения физической клавиши
       const keyCode = e.code;
 
-      // Стрелки
+      // Стрелки (работают независимо от раскладки)
       if (keyCode === "ArrowLeft" && dx === 0) { dx = -grid; dy = 0; }
       if (keyCode === "ArrowRight" && dx === 0) { dx = grid; dy = 0; }
       if (keyCode === "ArrowUp" && dy === 0) { dy = -grid; dx = 0; }
       if (keyCode === "ArrowDown" && dy === 0) { dy = grid; dx = 0; }
 
       // WASD (физические клавиши, независимо от раскладки)
-      if (keyCode === "KeyA" && dx === 0) { dx = -grid; dy = 0; }
-      if (keyCode === "KeyD" && dx === 0) { dx = grid; dy = 0; }
-      if (keyCode === "KeyW" && dy === 0) { dy = -grid; dx = 0; }
-      if (keyCode === "KeyS" && dy === 0) { dy = grid; dx = 0; }
-    });
-
-    // Сенсорное управление (свайпы)
-    canvas.addEventListener("touchstart", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-    });
-
-    canvas.addEventListener("touchmove", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      touchEndX = touch.clientX;
-      touchEndY = touch.clientY;
-    });
-
-    canvas.addEventListener("touchend", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
-
-      const deltaX = touchEndX - touchStartX;
-      const deltaY = touchEndY - touchStartY;
-
-      if (Math.abs(deltaX) < swipeThreshold && Math.abs(deltaY) < swipeThreshold) return;
-
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (deltaX > 0 && dx === 0) { dx = grid; dy = 0; }
-        if (deltaX < 0 && dx === 0) { dx = -grid; dy = 0; }
-      } else {
-        if (deltaY > 0 && dy === 0) { dy = grid; dx = 0; }
-        if (deltaY < 0 && dy === 0) { dy = -grid; dx = 0; }
-      }
-    });
-
-    // Управление через виртуальные кнопки
-    upButton.addEventListener("touchstart", e => {
-      e.preventDefault();
-      if (!gameStarted || gameWon || dy !== 0) return;
-      dy = -grid;
-      dx = 0;
-    });
-
-    downButton.addEventListener("touchstart", e => {
-      e.preventDefault();
-      if (!gameStarted || gameWon || dy !== 0) return;
-      dy = grid;
-      dx = 0;
-    });
-
-    leftButton.addEventListener("touchstart", e => {
-      e.preventDefault();
-      if (!gameStarted || gameWon || dx !== 0) return;
-      dx = -grid;
-      dy = 0;
-    });
-
-    rightButton.addEventListener("touchstart", e => {
-      e.preventDefault();
-      if (!gameStarted || gameWon || dx !== 0) return;
-      dx = grid;
-      dy = 0;
-    });
-
-    // Предотвращаем стандартное поведение для кнопок
-    [upButton, downButton, leftButton, rightButton].forEach(button => {
-      button.addEventListener("touchend", e => e.preventDefault());
-      button.addEventListener("touchmove", e => e.preventDefault());
+      if (keyCode === "KeyA" && dx === 0) { dx = -grid; dy = 0; } // A (Ц в русской, Z во французской AZERTY)
+      if (keyCode === "KeyD" && dx === 0) { dx = grid; dy = 0; }  // D (В в русской, D в испанской)
+      if (keyCode === "KeyW" && dy === 0) { dy = -grid; dx = 0; } // W (Ц в русской, Z во французской AZERTY)
+      if (keyCode === "KeyS" && dy === 0) { dy = grid; dx = 0; }  // S (Ы в русской, S в испанской)
     });
 
     // Функция для подгонки текста по ширине
@@ -604,9 +442,6 @@
           freakyBird = null;
           if (winSound) winSound.play();
           restartButton.style.display = "block";
-          if (isMobile) {
-            controls.style.display = "none"; // Скрываем кнопки при победе
-          }
           console.log("You won! Crab size increased, obstacles removed.");
         }
 
@@ -678,9 +513,6 @@
         canvas.style.display = "block";
         startButton.style.display = "none";
         twitterLink.style.display = "none";
-        if (isMobile) {
-          controls.style.display = "block"; // Показываем кнопки на мобильных устройствах
-        }
         if (startSound) startSound.play();
         loop();
       }
