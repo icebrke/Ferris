@@ -1,44 +1,73 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Краб ест Succinct</title>
+  <title>Crab Eats Succinct</title>
   <style>
     body {
-      background-color: #ffe0f0;
+      background-color: #1a1a1a; /* Dark background for the page */
       margin: 0;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
     canvas {
-      display: block;
+      display: none; /* Hide canvas until the button is clicked */
       margin: auto;
       background: #ffcce6;
       border: 5px solid #ff99cc;
     }
+    button {
+      padding: 15px 30px;
+      font-size: 20px;
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background-color: #ff99cc;
+    }
   </style>
 </head>
 <body>
+  <button id="startButton">Start Game</button>
   <canvas id="game" width="600" height="400"></canvas>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("startButton");
 
     const grid = 20;
     let crab = [{ x: 300, y: 200 }];
     let dx = grid, dy = 0;
     let food = randomFood();
     let score = 0;
-    const foodImg = new Image();
-    foodImg.src = "succinct.png"; // помести PNG рядом
+    let gameStarted = false;
+    let frame = 0;
 
+    // Load images
+    const foodImg = new Image();
+    foodImg.src = "succinct.png"; // Succinct logo for food
+    const crabImg = new Image();
+    crabImg.src = "crab.png"; // Save the attached image as crab.png
+
+    // Controls
     document.addEventListener("keydown", e => {
+      if (!gameStarted) return; // Ignore keys until the game starts
       if (e.key === "ArrowLeft" && dx === 0) { dx = -grid; dy = 0; }
       if (e.key === "ArrowRight" && dx === 0) { dx = grid; dy = 0; }
       if (e.key === "ArrowUp" && dy === 0) { dy = -grid; dx = 0; }
       if (e.key === "ArrowDown" && dy === 0) { dy = grid; dx = 0; }
     });
 
+    // Generate food
     function randomFood() {
       return {
         x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
@@ -46,20 +75,26 @@
       };
     }
 
+    // Main game loop
     function loop() {
+      if (!gameStarted) return; // Stop the loop if the game hasn't started
+
       requestAnimationFrame(loop);
       if (++frame % 6 !== 0) return;
 
       const head = { x: crab[0].x + dx, y: crab[0].y + dy };
 
-      // Столкновения
+      // Collision detection
       if (head.x < 0 || head.y < 0 || head.x >= canvas.width || head.y >= canvas.height ||
           crab.some(seg => seg.x === head.x && seg.y === head.y)) {
-        alert("Игра окончена! Очки: " + score);
+        alert("Game Over! Score: " + score);
         crab = [{ x: 300, y: 200 }];
         dx = grid; dy = 0;
         food = randomFood();
         score = 0;
+        gameStarted = false;
+        canvas.style.display = "none";
+        startButton.style.display = "block"; // Show the button again
         return;
       }
 
@@ -74,21 +109,27 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Рисуем еду (логотип)
+      // Draw food (Succinct logo)
       ctx.drawImage(foodImg, food.x, food.y, grid, grid);
 
-      // Рисуем краба
-      ctx.fillStyle = "#ff69b4";
-      crab.forEach(seg => ctx.fillRect(seg.x, seg.y, grid, grid));
+      // Draw crab (image instead of a square)
+      crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, grid, grid));
 
-      // Очки
+      // Score display
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
-      ctx.fillText("Очки: " + score, 10, 20);
+      ctx.fillText("Score: " + score, 10, 20);
     }
 
-    let frame = 0;
-    loop();
+    // Start game on button click
+    startButton.addEventListener("click", () => {
+      if (!gameStarted) {
+        gameStarted = true;
+        canvas.style.display = "block";
+        startButton.style.display = "none";
+        loop();
+      }
+    });
   </script>
 </body>
 </html>
