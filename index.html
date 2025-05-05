@@ -60,7 +60,8 @@
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
-    const crabSize = grid * 1.5;
+    const crabSize = grid * 1.5; // Размер краба: 30 пикселей
+    const freakyBirdSize = crabSize * 2; // Размер FreakyBird: 60 пикселей (в 2 раза больше краба)
     const bonusSize = grid * 2;
     let crab = [{ x: 400, y: 300 }];
     let dx = grid, dy = 0;
@@ -74,9 +75,9 @@
     let obstaclesCleared = false;
     let obstaclesClearedTime = 0;
     const obstaclesClearDuration = 15 * 60;
-    let obstacleImmunity = false; // Флаг иммунитета к препятствиям
-    let obstacleImmunityTime = 0; // Время начала иммунитета
-    const obstacleImmunityDuration = 5 * 60; // 5 секунд при 60 кадрах в секунду
+    let obstacleImmunity = false;
+    let obstacleImmunityTime = 0;
+    const obstacleImmunityDuration = 5 * 60;
 
     // Препятствия
     let obstacles = [
@@ -230,7 +231,6 @@
         { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
         { x: 500, y: 200 }, { x: 100, y: 500 },
       ];
-      // Добавляем дополнительные препятствия каждые 3 очка
       const additionalObstacles = Math.floor(score / 3);
       for (let i = 0; i < additionalObstacles; i++) {
         spawnObstacle();
@@ -244,6 +244,26 @@
         y: 0,
         speed: 5
       };
+    }
+
+    // Проверка столкновения с учетом размеров объектов
+    function checkCollision(obj1, obj1Size, obj2, obj2Size) {
+      const obj1Left = obj1.x;
+      const obj1Right = obj1.x + obj1Size;
+      const obj1Top = obj1.y;
+      const obj1Bottom = obj1.y + obj1Size;
+
+      const obj2Left = obj2.x;
+      const obj2Right = obj2.x + obj2Size;
+      const obj2Top = obj2.y;
+      const obj2Bottom = obj2.y + obj2Size;
+
+      return (
+        obj1Left < obj2Right &&
+        obj1Right > obj2Left &&
+        obj1Top < obj2Bottom &&
+        obj1Bottom > obj2Top
+      );
     }
 
     // Движение FreakyBird к крабу
@@ -260,7 +280,8 @@
         freakyBird.y += (deltaY / distance) * freakyBird.speed;
       }
 
-      if (Math.abs(freakyBird.x - crabHead.x) < grid && Math.abs(freakyBird.y - crabHead.y) < grid) {
+      // Проверка на столкновение с крабом с учетом размеров
+      if (checkCollision(crabHead, crabSize, freakyBird, freakyBirdSize)) {
         if (gameOverSound) gameOverSound.play();
         alert("Game Over! FreakyBird caught you! Score: " + score);
         resetGame();
@@ -311,7 +332,7 @@
       if (head.y < 0) head.y = canvas.height - grid;
       if (head.y >= canvas.height) head.y = 0;
 
-      // Столкновение с препятствиями (без самопересечения)
+      // Столкновение с препятствиями
       const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
       if (hasObstacleCollision && !obstacleImmunity) {
         if (gameOverSound) gameOverSound.play();
@@ -327,7 +348,7 @@
         score++;
         if (eatSound) eatSound.play();
         food = randomFood();
-        if (!obstaclesCleared && score % 3 === 0) { // Добавляем препятствие каждые 3 очка
+        if (!obstaclesCleared && score % 3 === 0) {
           spawnObstacle();
         }
       }
@@ -351,7 +372,7 @@
         restoreObstacles();
         obstaclesCleared = false;
         obstaclesClearedTime = 0;
-        obstacleImmunity = true; // Даем иммунитет
+        obstacleImmunity = true;
         obstacleImmunityTime = frame;
         console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
       }
@@ -382,8 +403,8 @@
       // Отрисовка бонуса
       if (bonus) ctx.drawImage(bonusImg, bonus.x, bonus.y, bonusSize, bonusSize);
 
-      // Отрисовка FreakyBird
-      if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, crabSize, crabSize);
+      // Отрисовка FreakyBird с новым размером
+      if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, freakyBirdSize, freakyBirdSize);
 
       // Отрисовка краба
       crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, crabSize, crabSize));
