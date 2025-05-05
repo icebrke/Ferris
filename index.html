@@ -60,8 +60,8 @@
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
-    const crabSize = grid * 1.5; // Размер краба: 30 пикселей
-    const freakyBirdSize = crabSize * 2; // Размер FreakyBird: 60 пикселей (в 2 раза больше краба)
+    const crabSize = grid * 1.5;
+    const freakyBirdSize = crabSize * 2;
     const bonusSize = grid * 2;
     let crab = [{ x: 400, y: 300 }];
     let dx = grid, dy = 0;
@@ -150,11 +150,13 @@
       }
     }
 
-    // Генерация еды
+    // Генерация еды (с учетом расстояния от препятствий)
     function randomFood() {
       let newFood;
       let attempts = 0;
       const maxAttempts = 100;
+      const minDistanceFromObstacles = 2 * grid; // Минимальное расстояние от препятствий: 2 клетки (40 пикселей)
+
       do {
         newFood = {
           x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
@@ -166,7 +168,13 @@
           newFood = { x: 400, y: 200 };
           break;
         }
-      } while (obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y));
+      } while (
+        obstacles.some(ob => {
+          const dx = Math.abs(ob.x - newFood.x);
+          const dy = Math.abs(ob.y - newFood.y);
+          return dx <= minDistanceFromObstacles && dy <= minDistanceFromObstacles;
+        })
+      );
       return newFood;
     }
 
@@ -237,13 +245,20 @@
       }
     }
 
-    // Генерация FreakyBird при достижении 30 очков
+    // Генерация FreakyBird
     function spawnFreakyBird() {
       freakyBird = {
         x: 0,
         y: 0,
         speed: 5
       };
+      console.log("FreakyBird spawned at score:", score);
+    }
+
+    // Удаление FreakyBird
+    function removeFreakyBird() {
+      freakyBird = null;
+      console.log("FreakyBird removed at score:", score);
     }
 
     // Проверка столкновения с учетом размеров объектов
@@ -280,7 +295,6 @@
         freakyBird.y += (deltaY / distance) * freakyBird.speed;
       }
 
-      // Проверка на столкновение с крабом с учетом размеров
       if (checkCollision(crabHead, crabSize, freakyBird, freakyBirdSize)) {
         if (gameOverSound) gameOverSound.play();
         alert("Game Over! FreakyBird caught you! Score: " + score);
@@ -351,6 +365,13 @@
         if (!obstaclesCleared && score % 3 === 0) {
           spawnObstacle();
         }
+
+        // Управление появлением и исчезновением FreakyBird
+        if (score === 20 || score === 50 || score === 100) {
+          spawnFreakyBird();
+        } else if (score === 25 || score === 55 || score === 105) {
+          removeFreakyBird();
+        }
       }
       // Сбор бонуса
       else if (bonus && head.x === bonus.x && head.y === bonus.y) {
@@ -383,11 +404,6 @@
         console.log("Crab immunity ended!");
       }
 
-      // Появление FreakyBird при 30 очках
-      if (score >= 30 && !freakyBird) {
-        spawnFreakyBird();
-      }
-
       // Движение FreakyBird
       moveFreakyBird();
 
@@ -403,7 +419,7 @@
       // Отрисовка бонуса
       if (bonus) ctx.drawImage(bonusImg, bonus.x, bonus.y, bonusSize, bonusSize);
 
-      // Отрисовка FreakyBird с новым размером
+      // Отрисовка FreakyBird
       if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, freakyBirdSize, freakyBirdSize);
 
       // Отрисовка краба
