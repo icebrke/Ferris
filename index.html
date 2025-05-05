@@ -45,15 +45,15 @@
     const startButton = document.getElementById("startButton");
 
     const grid = 20;
-    const crabSize = grid * 1.5; // Краб в 1.5 раза больше клетки
+    const crabSize = grid * 1.5;
     let crab = [{ x: 300, y: 200 }];
     let dx = grid, dy = 0;
-    let food = randomFood();
+    let food = null;
     let score = 0;
     let gameStarted = false;
     let frame = 0;
 
-    // Препятствия (массив координат {x, y})
+    // Препятствия
     const obstacles = [
       { x: 100, y: 100 },
       { x: 100, y: 120 },
@@ -64,25 +64,48 @@
 
     // Загрузка изображений
     const foodImg = new Image();
-    foodImg.src = "succinct.png";
     const crabImg = new Image();
+    let imagesLoaded = 0;
+    const totalImages = 2;
+
+    foodImg.src = "succinct.png";
     crabImg.src = "crab.png";
 
-    // Загрузка звуков
-    const startSound = new Audio("start.mp3");
-    const eatSound = new Audio("eat.mp3");
-    const gameOverSound = new Audio("gameover.mp3");
+    foodImg.onload = () => {
+      imagesLoaded++;
+      console.log("Изображение еды загружено");
+      checkResourcesLoaded();
+    };
+    foodImg.onerror = () => console.error("Ошибка загрузки succinct.png");
 
-    // Управление (стрелки + WASD)
-    document.addEventListener("keydown", e => {
-      if (!gameStarted) return;
-      if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && dx === 0) { dx = -grid; dy = 0; }
-      if ((e.key === "ArrowRight" || e.key.toLowerCase() === "d") && dx === 0) { dx = grid; dy = 0; }
-      if ((e.key === "ArrowUp" || e.key.toLowerCase() === "w") && dy === 0) { dy = -grid; dx = 0; }
-      if ((e.key === "ArrowDown" || e.key.toLowerCase() === "s") && dy === 0) { dy = grid; dx = 0; }
-    });
+    crabImg.onload = () => {
+      imagesLoaded++;
+      console.log("Изображение краба загружено");
+      checkResourcesLoaded();
+    };
+    crabImg.onerror = () => console.error("Ошибка загрузки crab.png");
 
-    // Генерация еды (чтобы не появлялась на препятствиях)
+    // Загрузка звуков (опционально, если звуков нет, игра все равно запустится)
+    let startSound, eatSound, gameOverSound;
+    try {
+      startSound = new Audio("start.mp3");
+      eatSound = new Audio("eat.mp3");
+      gameOverSound = new Audio("gameover.mp3");
+      console.log("Звуки инициализированы");
+    } catch (e) {
+      console.error("Ошибка загрузки звуков:", e);
+    }
+
+    // Проверка загрузки ресурсов
+    function checkResourcesLoaded() {
+      if (imagesLoaded === totalImages) {
+        console.log("Все изображения загружены");
+        food = randomFood(); // Инициализируем еду после загрузки изображений
+        startButton.disabled = false; // Активируем кнопку
+      }
+    }
+
+    // Генерация еды
     function randomFood() {
       let newFood;
       do {
@@ -93,6 +116,15 @@
       } while (obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y));
       return newFood;
     }
+
+    // Управление (стрелки + WASD)
+    document.addEventListener("keydown", e => {
+      if (!gameStarted) return;
+      if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && dx === 0) { dx = -grid; dy = 0; }
+      if ((e.key === "ArrowRight" || e.key.toLowerCase() === "d") && dx === 0) { dx = grid; dy = 0; }
+      if ((e.key === "ArrowUp" || e.key.toLowerCase() === "w") && dy === 0) { dy = -grid; dx = 0; }
+      if ((e.key === "ArrowDown" || e.key.toLowerCase() === "s") && dy === 0) { dy = grid; dx = 0; }
+    });
 
     // Основной игровой цикл
     function loop() {
@@ -112,7 +144,7 @@
       // Столкновение с препятствиями или самим собой
       if (obstacles.some(ob => ob.x === head.x && ob.y === head.y) ||
           crab.some(seg => seg.x === head.x && seg.y === head.y)) {
-        gameOverSound.play();
+        if (gameOverSound) gameOverSound.play();
         alert("Игра Окончена! Очки: " + score);
         crab = [{ x: 300, y: 200 }];
         dx = grid; dy = 0;
@@ -128,7 +160,7 @@
 
       if (head.x === food.x && head.y === food.y) {
         score++;
-        eatSound.play();
+        if (eatSound) eatSound.play();
         food = randomFood();
       } else {
         crab.pop();
@@ -140,10 +172,10 @@
       ctx.fillStyle = "#666";
       obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, grid, grid));
 
-      // Отрисовка еды (логотип Succinct)
+      // Отрисовка еды
       ctx.drawImage(foodImg, food.x, food.y, grid, grid);
 
-      // Отрисовка краба (увеличенного)
+      // Отрисовка краба
       crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, crabSize, crabSize));
 
       // Отображение очков
@@ -155,13 +187,17 @@
     // Запуск игры по кнопке
     startButton.addEventListener("click", () => {
       if (!gameStarted) {
+        console.log("Игра запущена");
         gameStarted = true;
         canvas.style.display = "block";
         startButton.style.display = "none";
-        startSound.play();
+        if (startSound) startSound.play();
         loop();
       }
     });
+
+    // Изначально кнопка неактивна, пока не загрузятся ресурсы
+    startButton.disabled = true;
   </script>
 </body>
 </html>
