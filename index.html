@@ -52,7 +52,7 @@
 <body>
   <button id="startButton">Start Game</button>
   <a href="https://twitter.com/YourTwitterHandle" class="twitter-link" id="twitterLink" target="_blank">@YourTwitterHandle</a>
-  <canvas id="game" width="1000" height="800"></canvas> <!-- Увеличено разрешение -->
+  <canvas id="game" width="1000" height="800"></canvas>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
@@ -64,7 +64,7 @@
     const crabSize = grid * 3;
     const freakyBirdSize = grid * 3;
     const bonusSize = grid * 2;
-    let crab = [{ x: 500, y: 400 }]; // Адаптировано под новое разрешение
+    let crab = [{ x: 500, y: 400 }]; // Начальная позиция краба
     let dx = grid, dy = 0;
     let food = null;
     let bonus = null;
@@ -75,11 +75,11 @@
     let frameDelay = 12;
     let obstaclesCleared = false;
 
-    // Препятствия (адаптированы под новое разрешение)
+    // Препятствия (адаптированы под новое разрешение, избегаем начальной позиции краба)
     let obstacles = [
       { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
       { x: 800, y: 600 }, { x: 820, y: 600 }, { x: 840, y: 600 },
-      { x: 400, y: 400 }, { x: 400, y: 420 }, { x: 420, y: 400 }, { x: 420, y: 420 },
+      { x: 400, y: 200 }, { x: 400, y: 220 }, { x: 420, y: 200 }, { x: 420, y: 220 }, // Перемещено подальше от краба
       { x: 600, y: 200 }, { x: 100, y: 600 },
     ];
 
@@ -154,7 +154,10 @@
           x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
           y: Math.floor(Math.random() * (canvas.height / grid)) * grid
         };
-      } while (obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y));
+      } while (
+        obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y) ||
+        checkCollision(crab[0], crabSize, newFood, grid) // Убедимся, что еда не появляется на крабе
+      );
       return newFood;
     }
 
@@ -168,7 +171,8 @@
         };
       } while (
         obstacles.some(ob => ob.x === newBonus.x && ob.y === newBonus.y) ||
-        (newBonus.x === food.x && newBonus.y === food.y)
+        (newBonus.x === food.x && newBonus.y === food.y) ||
+        checkCollision(crab[0], crabSize, newBonus, bonusSize) // Убедимся, что бонус не появляется на крабе
       );
       bonus = newBonus;
     }
@@ -178,7 +182,7 @@
       obstacles = [
         { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
         { x: 800, y: 600 }, { x: 820, y: 600 }, { x: 840, y: 600 },
-        { x: 400, y: 400 }, { x: 400, y: 420 }, { x: 420, y: 400 }, { x: 420, y: 420 },
+        { x: 400, y: 200 }, { x: 400, y: 220 }, { x: 420, y: 200 }, { x: 420, y: 220 },
         { x: 600, y: 200 }, { x: 100, y: 600 },
       ];
     }
@@ -200,7 +204,7 @@
       const obj1Bottom = obj1.y + obj1Size;
 
       const obj2Left = obj2.x;
-      const obj2Right = obj2.x + (obj2Size || grid); // Для еды и препятствий размер может быть меньше
+      const obj2Right = obj2.x + (obj2Size || grid);
       const obj2Top = obj2.y;
       const obj2Bottom = obj2.y + (obj2Size || grid);
 
@@ -255,6 +259,24 @@
       if ((e.key === "ArrowUp" || e.key.toLowerCase() === "w") && dy === 0) { dy = -grid; dx = 0; }
       if ((e.key === "ArrowDown" || e.key.toLowerCase() === "s") && dy === 0) { dy = grid; dx = 0; }
     });
+
+    // Проверка начального столкновения (для отладки)
+    function checkInitialCollisions() {
+      const head = crab[0];
+      // Проверка столкновения с препятствиями
+      const obstacleCollision = obstacles.some(ob => checkCollision(head, crabSize, ob, obstacleSize));
+      if (obstacleCollision) {
+        console.log("Initial collision with obstacle detected!");
+      }
+
+      // Проверка столкновения с самим собой (не должно быть, но на всякий случай)
+      const selfCollision = crab.some(seg => seg !== head && checkCollision(head, crabSize, seg, crabSize));
+      if (selfCollision) {
+        console.log("Initial self-collision detected!");
+      }
+
+      return obstacleCollision || selfCollision;
+    }
 
     // Основной игровой цикл
     function loop() {
@@ -355,6 +377,12 @@
     startButton.addEventListener("click", () => {
       if (!gameStarted) {
         console.log("Game started");
+        if (checkInitialCollisions()) {
+          console.log("Adjusting crab position to avoid initial collision...");
+          crab = [{ x: 500, y: 400 }]; // Позиция уже должна быть безопасной, но на всякий случай
+          obstacles = [];
+          restoreObstacles();
+        }
         gameStarted = true;
         canvas.style.display = "block";
         startButton.style.display = "none";
