@@ -21,6 +21,7 @@
       margin: auto;
       background: #ffcce6;
       border: 5px solid #ff99cc;
+      touch-action: none; /* Отключаем стандартное поведение браузера для сенсорных событий */
     }
     button {
       padding: 15px 30px;
@@ -52,7 +53,7 @@
 <body>
   <button id="startButton">Start Game</button>
   <button id="restartButton" style="display: none;">Restart</button>
-  <a href="https://twitter.com/eeelohater" class="twitter-link" id="twitterLink" target="_blank">@icebrke</a>
+  <a href="https://twitter.com/eeelohater" class="twitter-link" id="twitterLink" target="_blank">icebrke</a>
   <canvas id="game" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById("game");
@@ -81,6 +82,13 @@
     let obstacleImmunity = false;
     let obstacleImmunityTime = 0;
     const obstacleImmunityDuration = 5 * 60;
+
+    // Переменные для сенсорного управления
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const swipeThreshold = 30; // Минимальное расстояние для свайпа (в пикселях)
 
     // Препятствия
     let obstacles = [
@@ -340,13 +348,62 @@
       twitterLink.style.display = "block";
     }
 
-    // Управление (стрелки + WASD)
+    // Управление с клавиатуры (стрелки + WASD)
     document.addEventListener("keydown", e => {
       if (!gameStarted || gameWon) return;
-      if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && dx === 0) { dx = -grid; dy = 0; }
-      if ((e.key === "ArrowRight" || e.key.toLowerCase() === "d") && dx === 0) { dx = grid; dy = 0; }
-      if ((e.key === "ArrowUp" || e.key.toLowerCase() === "w") && dy === 0) { dy = -grid; dx = 0; }
-      if ((e.key === "ArrowDown" || e.key.toLowerCase() === "s") && dy === 0) { dy = grid; dx = 0; }
+
+      const keyCode = e.code;
+
+      // Стрелки
+      if (keyCode === "ArrowLeft" && dx === 0) { dx = -grid; dy = 0; }
+      if (keyCode === "ArrowRight" && dx === 0) { dx = grid; dy = 0; }
+      if (keyCode === "ArrowUp" && dy === 0) { dy = -grid; dx = 0; }
+      if (keyCode === "ArrowDown" && dy === 0) { dy = grid; dx = 0; }
+
+      // WASD (физические клавиши, независимо от раскладки)
+      if (keyCode === "KeyA" && dx === 0) { dx = -grid; dy = 0; }
+      if (keyCode === "KeyD" && dx === 0) { dx = grid; dy = 0; }
+      if (keyCode === "KeyW" && dy === 0) { dy = -grid; dx = 0; }
+      if (keyCode === "KeyS" && dy === 0) { dy = grid; dx = 0; }
+    });
+
+    // Сенсорное управление (свайпы)
+    canvas.addEventListener("touchstart", e => {
+      if (!gameStarted || gameWon) return;
+      e.preventDefault(); // Предотвращаем прокрутку страницы
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    });
+
+    canvas.addEventListener("touchmove", e => {
+      if (!gameStarted || gameWon) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      touchEndX = touch.clientX;
+      touchEndY = touch.clientY;
+    });
+
+    canvas.addEventListener("touchend", e => {
+      if (!gameStarted || gameWon) return;
+      e.preventDefault();
+
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+
+      // Проверяем, достаточно ли большой свайп
+      if (Math.abs(deltaX) < swipeThreshold && Math.abs(deltaY) < swipeThreshold) return;
+
+      // Определяем направление свайпа
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Горизонтальный свайп
+        if (deltaX > 0 && dx === 0) { dx = grid; dy = 0; }  // Вправо
+        if (deltaX < 0 && dx === 0) { dx = -grid; dy = 0; } // Влево
+      } else {
+        // Вертикальный свайп
+        if (deltaY > 0 && dy === 0) { dy = grid; dx = 0; }  // Вниз
+        if (deltaY < 0 && dy === 0) { dy = -grid; dx = 0; } // Вверх
+      }
     });
 
     // Функция для подгонки текста по ширине
