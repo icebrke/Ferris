@@ -60,38 +60,35 @@
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
-    const crabSize = grid * 1.5;
+    const crabSize = grid * 2; // Увеличенный размер краба
+    const freakyBirdSize = grid * 2; // Увеличенный размер FreakyBird
     const bonusSize = grid * 2;
     let crab = [{ x: 400, y: 300 }];
     let dx = grid, dy = 0;
     let food = null;
     let bonus = null;
-    let freakyBird = null; // FreakyBird появляется при 30 очках
+    let freakyBird = null;
     let score = 0;
     let gameStarted = false;
     let frame = 0;
     let frameDelay = 12;
+    let obstaclesCleared = false; // Флаг, показывающий, очищены ли препятствия бонусом
 
-    // Препятствия (разнообразные формы)
-    let obstacles = [
-      { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
-      { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
-      { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
-      { x: 500, y: 200 }, { x: 100, y: 500 },
-    ];
+    // Препятствия (изначально пустой массив, будут добавляться с каждым очком)
+    let obstacles = [];
 
     // Загрузка изображений
     const foodImg = new Image();
     const crabImg = new Image();
     const bonusImg = new Image();
-    const freakyBirdImg = new Image(); // Изображение для FreakyBird
+    const freakyBirdImg = new Image();
     let imagesLoaded = 0;
     const totalImages = 4;
 
     foodImg.src = "succinct.png";
     crabImg.src = "crab.png";
     bonusImg.src = "bonus.png";
-    freakyBirdImg.src = "freakybird.png"; // Добавь изображение для FreakyBird
+    freakyBirdImg.src = "freakybird.png";
 
     foodImg.onload = () => {
       imagesLoaded++;
@@ -170,12 +167,28 @@
       bonus = newBonus;
     }
 
+    // Генерация нового препятствия при сборе очка
+    function spawnObstacle() {
+      let newObstacle;
+      do {
+        newObstacle = {
+          x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
+          y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+        };
+      } while (
+        obstacles.some(ob => ob.x === newObstacle.x && ob.y === newObstacle.y) ||
+        (newObstacle.x === food.x && newObstacle.y === food.y) ||
+        (bonus && newObstacle.x === bonus.x && newObstacle.y === bonus.y)
+      );
+      obstacles.push(newObstacle);
+    }
+
     // Генерация FreakyBird при достижении 30 очков
     function spawnFreakyBird() {
       freakyBird = {
-        x: 0, // FreakyBird появляется в левом верхнем углу
+        x: 0,
         y: 0,
-        speed: 5 // Медленная скорость (меньше, чем у краба даже на начальной скорости)
+        speed: 5
       };
     }
 
@@ -204,13 +217,8 @@
         score = 0;
         frameDelay = 12;
         gameStarted = false;
-        freakyBird = null; // Сбрасываем FreakyBird
-        obstacles = [ // Возвращаем препятствия
-          { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
-          { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
-          { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
-          { x: 500, y: 200 }, { x: 100, y: 500 },
-        ];
+        freakyBird = null;
+        obstacles = [];
         canvas.style.display = "none";
         startButton.style.display = "block";
         twitterLink.style.display = "block";
@@ -232,7 +240,7 @@
 
       requestAnimationFrame(loop);
 
-      // Обновление скорости краба
+      // Обновление скорости краба (зависит только от очков)
       frameDelay = Math.max(6, 12 - Math.floor(score / 2));
 
       if (++frame % frameDelay !== 0) return;
@@ -257,13 +265,9 @@
         score = 0;
         frameDelay = 12;
         gameStarted = false;
-        freakyBird = null; // Сбрасываем FreakyBird
-        obstacles = [ // Возвращаем препятствия
-          { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
-          { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
-          { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
-          { x: 500, y: 200 }, { x: 100, y: 500 },
-        ];
+        freakyBird = null;
+        obstacles = [];
+        obstaclesCleared = false;
         canvas.style.display = "none";
         startButton.style.display = "block";
         twitterLink.style.display = "block";
@@ -277,12 +281,15 @@
         score++;
         if (eatSound) eatSound.play();
         food = randomFood();
+        spawnObstacle(); // Добавляем новое препятствие при сборе еды
+        obstaclesCleared = false; // Препятствия снова начинают появляться
       }
       // Сбор бонуса
       else if (bonus && head.x === bonus.x && head.y === bonus.y) {
         score += 5;
         if (bonusSound) bonusSound.play();
         obstacles = []; // Удаляем все препятствия при сборе бонуса
+        obstaclesCleared = true; // Устанавливаем флаг, что препятствия очищены
         spawnBonus();
       } else {
         crab.pop();
@@ -309,7 +316,7 @@
       if (bonus) ctx.drawImage(bonusImg, bonus.x, bonus.y, bonusSize, bonusSize);
 
       // Отрисовка FreakyBird
-      if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, crabSize, crabSize);
+      if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, freakyBirdSize, freakyBirdSize);
 
       // Отрисовка краба
       crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, crabSize, crabSize));
