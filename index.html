@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
   <title>Crab Eats Succinct</title>
   <style>
     body {
@@ -21,7 +21,7 @@
       margin: auto;
       background: #ffcce6;
       border: 5px solid #ff99cc;
-      touch-action: none; /* Отключаем стандартное поведение браузера для сенсорных событий */
+      touch-action: none;
     }
     button {
       padding: 15px 30px;
@@ -48,19 +48,68 @@
     .twitter-link:hover {
       color: #ff99cc;
     }
+    /* Стили для виртуальных кнопок */
+    .controls {
+      display: none; /* Скрыты по умолчанию, показываем на мобильных */
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+    .control-button {
+      width: 60px;
+      height: 60px;
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 24px;
+      margin: 5px;
+      cursor: pointer;
+      touch-action: none;
+    }
+    .control-button:active {
+      background-color: #ff99cc;
+    }
+    .control-row {
+      display: flex;
+      justify-content: center;
+    }
+    @media (max-width: 768px) {
+      .controls {
+        display: block; /* Показываем кнопки на мобильных устройствах */
+      }
+    }
   </style>
 </head>
 <body>
   <button id="startButton">Start Game</button>
   <button id="restartButton" style="display: none;">Restart</button>
-  <a href="https://twitter.com/eeelohater" class="twitter-link" id="twitterLink" target="_blank">icebrke</a>
-  <canvas id="game" width="800" height="600"></canvas>
+  <a href="https://twitter.com/YourTwitterHandle" class="twitter-link" id="twitterLink" target="_blank">@YourTwitterHandle</a>
+  <canvas id="game"></canvas>
+  <!-- Виртуальные кнопки для управления -->
+  <div class="controls" id="controls">
+    <div class="control-row">
+      <button class="control-button" id="upButton">↑</button>
+    </div>
+    <div class="control-row">
+      <button class="control-button" id="leftButton">←</button>
+      <button class="control-button" id="downButton">↓</button>
+      <button class="control-button" id="rightButton">→</button>
+    </div>
+  </div>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const startButton = document.getElementById("startButton");
     const restartButton = document.getElementById("restartButton");
     const twitterLink = document.getElementById("twitterLink");
+    const controls = document.getElementById("controls");
+    const upButton = document.getElementById("upButton");
+    const downButton = document.getElementById("downButton");
+    const leftButton = document.getElementById("leftButton");
+    const rightButton = document.getElementById("rightButton");
 
     const grid = 20;
     let crabSize = grid * 1.5;
@@ -83,12 +132,45 @@
     let obstacleImmunityTime = 0;
     const obstacleImmunityDuration = 5 * 60;
 
-    // Переменные для сенсорного управления
+    // Переменные для сенсорного управления (свайпы)
     let touchStartX = 0;
     let touchStartY = 0;
     let touchEndX = 0;
     let touchEndY = 0;
-    const swipeThreshold = 30; // Минимальное расстояние для свайпа (в пикселях)
+    const swipeThreshold = 30;
+
+    // Определение, является ли устройство мобильным
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/.test(navigator.userAgent);
+
+    // Адаптивное масштабирование канваса
+    function resizeCanvas() {
+      const maxWidth = window.innerWidth;
+      const maxHeight = window.innerHeight;
+      const aspectRatio = 800 / 600; // Соотношение сторон канваса
+
+      let newWidth = maxWidth;
+      let newHeight = maxWidth / aspectRatio;
+
+      if (newHeight > maxHeight) {
+        newHeight = maxHeight;
+        newWidth = maxHeight * aspectRatio;
+      }
+
+      canvas.width = 800;
+      canvas.height = 600;
+      canvas.style.width = `${newWidth}px`;
+      canvas.style.height = `${newHeight}px`;
+
+      // Масштабирование содержимого канваса
+      const scaleX = newWidth / 800;
+      const scaleY = newHeight / 600;
+      ctx.scale(scaleX, scaleY);
+    }
+
+    // Вызываем масштабирование при загрузке и изменении размера окна
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", resizeCanvas);
+    resizeCanvas();
 
     // Препятствия
     let obstacles = [
@@ -346,6 +428,9 @@
       startButton.style.display = "block";
       restartButton.style.display = "none";
       twitterLink.style.display = "block";
+      if (isMobile) {
+        controls.style.display = "none";
+      }
     }
 
     // Управление с клавиатуры (стрелки + WASD)
@@ -370,7 +455,7 @@
     // Сенсорное управление (свайпы)
     canvas.addEventListener("touchstart", e => {
       if (!gameStarted || gameWon) return;
-      e.preventDefault(); // Предотвращаем прокрутку страницы
+      e.preventDefault();
       const touch = e.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
@@ -391,19 +476,50 @@
       const deltaX = touchEndX - touchStartX;
       const deltaY = touchEndY - touchStartY;
 
-      // Проверяем, достаточно ли большой свайп
       if (Math.abs(deltaX) < swipeThreshold && Math.abs(deltaY) < swipeThreshold) return;
 
-      // Определяем направление свайпа
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Горизонтальный свайп
-        if (deltaX > 0 && dx === 0) { dx = grid; dy = 0; }  // Вправо
-        if (deltaX < 0 && dx === 0) { dx = -grid; dy = 0; } // Влево
+        if (deltaX > 0 && dx === 0) { dx = grid; dy = 0; }
+        if (deltaX < 0 && dx === 0) { dx = -grid; dy = 0; }
       } else {
-        // Вертикальный свайп
-        if (deltaY > 0 && dy === 0) { dy = grid; dx = 0; }  // Вниз
-        if (deltaY < 0 && dy === 0) { dy = -grid; dx = 0; } // Вверх
+        if (deltaY > 0 && dy === 0) { dy = grid; dx = 0; }
+        if (deltaY < 0 && dy === 0) { dy = -grid; dx = 0; }
       }
+    });
+
+    // Управление через виртуальные кнопки
+    upButton.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (!gameStarted || gameWon || dy !== 0) return;
+      dy = -grid;
+      dx = 0;
+    });
+
+    downButton.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (!gameStarted || gameWon || dy !== 0) return;
+      dy = grid;
+      dx = 0;
+    });
+
+    leftButton.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (!gameStarted || gameWon || dx !== 0) return;
+      dx = -grid;
+      dy = 0;
+    });
+
+    rightButton.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (!gameStarted || gameWon || dx !== 0) return;
+      dx = grid;
+      dy = 0;
+    });
+
+    // Предотвращаем стандартное поведение для кнопок
+    [upButton, downButton, leftButton, rightButton].forEach(button => {
+      button.addEventListener("touchend", e => e.preventDefault());
+      button.addEventListener("touchmove", e => e.preventDefault());
     });
 
     // Функция для подгонки текста по ширине
@@ -488,6 +604,9 @@
           freakyBird = null;
           if (winSound) winSound.play();
           restartButton.style.display = "block";
+          if (isMobile) {
+            controls.style.display = "none"; // Скрываем кнопки при победе
+          }
           console.log("You won! Crab size increased, obstacles removed.");
         }
 
@@ -559,6 +678,9 @@
         canvas.style.display = "block";
         startButton.style.display = "none";
         twitterLink.style.display = "none";
+        if (isMobile) {
+          controls.style.display = "block"; // Показываем кнопки на мобильных устройствах
+        }
         if (startSound) startSound.play();
         loop();
       }
