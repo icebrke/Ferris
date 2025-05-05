@@ -60,7 +60,7 @@
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
-    let crabSize = grid * 1.5; // Начальный размер краба
+    let crabSize = grid * 1.5;
     const freakyBirdSize = crabSize * 2;
     const bonusSize = grid * 2;
     let crab = [{ x: 400, y: 300 }];
@@ -70,7 +70,7 @@
     let freakyBird = null;
     let score = 0;
     let gameStarted = false;
-    let gameWon = false; // Флаг победы
+    let gameWon = false;
     let frame = 0;
     const frameDelay = 12;
     let obstaclesCleared = false;
@@ -312,7 +312,7 @@
       score = 0;
       gameStarted = false;
       gameWon = false;
-      crabSize = grid * 1.5; // Сбрасываем размер краба
+      crabSize = grid * 1.5;
       freakyBird = null;
       obstaclesCleared = false;
       obstaclesClearedTime = 0;
@@ -377,12 +377,12 @@
             removeFreakyBird();
           }
 
-          // Победа на 100 очках
-          if (score === 100) {
+          // Победа на 10 очках (для теста)
+          if (score === 10) {
             gameWon = true;
-            obstacles = []; // Удаляем препятствия
-            crabSize = grid * 3; // Увеличиваем размер краба
-            freakyBird = null; // Удаляем FreakyBird
+            obstacles = [];
+            crabSize = grid * 3;
+            freakyBird = null;
             console.log("You won! Crab size increased, obstacles removed.");
           }
         }
