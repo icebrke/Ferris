@@ -306,6 +306,18 @@
       }
     }
 
+    // Функция для управления появлением и исчезновением FreakyBird
+    function updateFreakyBird() {
+      // Появление FreakyBird
+      if (score === 20 || score === 50 || score === 75) {
+        if (!freakyBird) spawnFreakyBird();
+      }
+      // Исчезновение FreakyBird
+      if (score === 25 || score === 55 || score === 80) {
+        if (freakyBird) removeFreakyBird();
+      }
+    }
+
     // Функция сброса игры
     function resetGame() {
       crab = [{ x: 400, y: 300 }];
@@ -383,35 +395,20 @@
         crab.unshift(head);
 
         // Сбор еды
+        let scoreIncreased = false;
         if (head.x === food.x && head.y === food.y) {
           score++;
+          scoreIncreased = true;
           if (eatSound) eatSound.play();
           food = randomFood();
           if (!obstaclesCleared && score % 3 === 0) {
             spawnObstacle();
           }
-
-          // Управление появлением и исчезновением FreakyBird
-          if (score === 20 || score === 50 || score === 75) {
-            spawnFreakyBird();
-          } else if (score === 25 || score === 55 || score === 80) {
-            removeFreakyBird();
-          }
-
-          // Победа на 100 очках
-          if (score === 100) {
-            gameWon = true;
-            obstacles = [];
-            crabSize = grid * 3;
-            freakyBird = null;
-            if (winSound) winSound.play();
-            restartButton.style.display = "block"; // Показываем кнопку рестарта
-            console.log("You won! Crab size increased, obstacles removed.");
-          }
         }
         // Сбор бонуса
         else if (bonus && head.x === bonus.x && head.y === bonus.y) {
           score += 5;
+          scoreIncreased = true;
           if (bonusSound) bonusSound.play();
           obstacles = [];
           obstaclesCleared = true;
@@ -419,6 +416,22 @@
           bonus = null;
         } else {
           crab.pop();
+        }
+
+        // Управление появлением и исчезновением FreakyBird после обновления счета
+        if (scoreIncreased) {
+          updateFreakyBird();
+        }
+
+        // Победа на 100 очках
+        if (score >= 100) {
+          gameWon = true;
+          obstacles = [];
+          crabSize = grid * 3;
+          freakyBird = null;
+          if (winSound) winSound.play();
+          restartButton.style.display = "block";
+          console.log("You won! Crab size increased, obstacles removed.");
         }
 
         // Пробуем заспавнить новый бонус
