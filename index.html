@@ -14,7 +14,7 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
-      position: relative; /* Для позиционирования ссылки */
+      position: relative;
     }
     canvas {
       display: none;
@@ -51,7 +51,7 @@
 </head>
 <body>
   <button id="startButton">Start Game</button>
-  <a href="https://twitter.com/eeelohater" class="twitter-link" id="twitterLink" target="_blank">@icebrke</a>
+  <a href="https://twitter.com/YourTwitterHandle" class="twitter-link" id="twitterLink" target="_blank">@YourTwitterHandle</a>
   <canvas id="game" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById("game");
@@ -66,13 +66,14 @@
     let dx = grid, dy = 0;
     let food = null;
     let bonus = null;
+    let freakyBird = null; // FreakyBird появляется при 30 очках
     let score = 0;
     let gameStarted = false;
     let frame = 0;
     let frameDelay = 12;
 
     // Препятствия (разнообразные формы)
-    const obstacles = [
+    let obstacles = [
       { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
       { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
       { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
@@ -83,12 +84,14 @@
     const foodImg = new Image();
     const crabImg = new Image();
     const bonusImg = new Image();
+    const freakyBirdImg = new Image(); // Изображение для FreakyBird
     let imagesLoaded = 0;
-    const totalImages = 3;
+    const totalImages = 4;
 
     foodImg.src = "succinct.png";
     crabImg.src = "crab.png";
     bonusImg.src = "bonus.png";
+    freakyBirdImg.src = "freakybird.png"; // Добавь изображение для FreakyBird
 
     foodImg.onload = () => {
       imagesLoaded++;
@@ -110,6 +113,13 @@
       checkResourcesLoaded();
     };
     bonusImg.onerror = () => console.error("Error loading bonus.png");
+
+    freakyBirdImg.onload = () => {
+      imagesLoaded++;
+      console.log("FreakyBird image loaded");
+      checkResourcesLoaded();
+    };
+    freakyBirdImg.onerror = () => console.error("Error loading freakybird.png");
 
     // Загрузка звуков
     let startSound, eatSound, gameOverSound, bonusSound;
@@ -160,6 +170,53 @@
       bonus = newBonus;
     }
 
+    // Генерация FreakyBird при достижении 30 очков
+    function spawnFreakyBird() {
+      freakyBird = {
+        x: 0, // FreakyBird появляется в левом верхнем углу
+        y: 0,
+        speed: 5 // Медленная скорость (меньше, чем у краба даже на начальной скорости)
+      };
+    }
+
+    // Движение FreakyBird к крабу
+    function moveFreakyBird() {
+      if (!freakyBird) return;
+
+      const crabHead = crab[0];
+      const deltaX = crabHead.x - freakyBird.x;
+      const deltaY = crabHead.y - freakyBird.y;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      if (distance > 0) {
+        freakyBird.x += (deltaX / distance) * freakyBird.speed;
+        freakyBird.y += (deltaY / distance) * freakyBird.speed;
+      }
+
+      // Проверка на столкновение с крабом
+      if (Math.abs(freakyBird.x - crabHead.x) < grid && Math.abs(freakyBird.y - crabHead.y) < grid) {
+        if (gameOverSound) gameOverSound.play();
+        alert("Game Over! FreakyBird caught you! Score: " + score);
+        crab = [{ x: 400, y: 300 }];
+        dx = grid; dy = 0;
+        food = randomFood();
+        spawnBonus();
+        score = 0;
+        frameDelay = 12;
+        gameStarted = false;
+        freakyBird = null; // Сбрасываем FreakyBird
+        obstacles = [ // Возвращаем препятствия
+          { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
+          { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
+          { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
+          { x: 500, y: 200 }, { x: 100, y: 500 },
+        ];
+        canvas.style.display = "none";
+        startButton.style.display = "block";
+        twitterLink.style.display = "block";
+      }
+    }
+
     // Управление (стрелки + WASD)
     document.addEventListener("keydown", e => {
       if (!gameStarted) return;
@@ -200,9 +257,16 @@
         score = 0;
         frameDelay = 12;
         gameStarted = false;
+        freakyBird = null; // Сбрасываем FreakyBird
+        obstacles = [ // Возвращаем препятствия
+          { x: 200, y: 100 }, { x: 200, y: 120 }, { x: 200, y: 140 },
+          { x: 600, y: 400 }, { x: 620, y: 400 }, { x: 640, y: 400 },
+          { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
+          { x: 500, y: 200 }, { x: 100, y: 500 },
+        ];
         canvas.style.display = "none";
         startButton.style.display = "block";
-        twitterLink.style.display = "block"; // Показываем ссылку после проигрыша
+        twitterLink.style.display = "block";
         return;
       }
 
@@ -218,10 +282,19 @@
       else if (bonus && head.x === bonus.x && head.y === bonus.y) {
         score += 5;
         if (bonusSound) bonusSound.play();
+        obstacles = []; // Удаляем все препятствия при сборе бонуса
         spawnBonus();
       } else {
         crab.pop();
       }
+
+      // Появление FreakyBird при 30 очках
+      if (score >= 30 && !freakyBird) {
+        spawnFreakyBird();
+      }
+
+      // Движение FreakyBird
+      moveFreakyBird();
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -234,6 +307,9 @@
 
       // Отрисовка бонуса
       if (bonus) ctx.drawImage(bonusImg, bonus.x, bonus.y, bonusSize, bonusSize);
+
+      // Отрисовка FreakyBird
+      if (freakyBird) ctx.drawImage(freakyBirdImg, freakyBird.x, freakyBird.y, crabSize, crabSize);
 
       // Отрисовка краба
       crab.forEach(seg => ctx.drawImage(crabImg, seg.x, seg.y, crabSize, crabSize));
@@ -251,7 +327,7 @@
         gameStarted = true;
         canvas.style.display = "block";
         startButton.style.display = "none";
-        twitterLink.style.display = "none"; // Скрываем ссылку во время игры
+        twitterLink.style.display = "none";
         if (startSound) startSound.play();
         loop();
       }
