@@ -51,12 +51,14 @@
 </head>
 <body>
   <button id="startButton">Start Game</button>
+  <button id="restartButton" style="display: none;">Restart</button>
   <a href="https://twitter.com/YourTwitterHandle" class="twitter-link" id="twitterLink" target="_blank">@YourTwitterHandle</a>
   <canvas id="game" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const startButton = document.getElementById("startButton");
+    const restartButton = document.getElementById("restartButton");
     const twitterLink = document.getElementById("twitterLink");
 
     const grid = 20;
@@ -136,7 +138,7 @@
       eatSound = new Audio("eat.mp3");
       gameOverSound = new Audio("gameover.mp3");
       bonusSound = new Audio("bonus.mp3");
-      winSound = new Audio("win.mp3"); // Звуковой файл для победы
+      winSound = new Audio("win.mp3");
       console.log("Sounds initialized");
     } catch (e) {
       console.error("Error loading sounds:", e);
@@ -322,6 +324,7 @@
       restoreObstacles();
       canvas.style.display = "none";
       startButton.style.display = "block";
+      restartButton.style.display = "none";
       twitterLink.style.display = "block";
     }
 
@@ -336,14 +339,12 @@
 
     // Функция для подгонки текста по ширине
     function fitTextToWidth(text, maxWidth) {
-      let fontSize = 40; // Начальный размер шрифта
+      let fontSize = 40;
       ctx.font = `bold ${fontSize}px Arial`;
       ctx.textAlign = "center";
 
-      // Измеряем ширину текста
       let textWidth = ctx.measureText(text).width;
 
-      // Уменьшаем размер шрифта, пока текст не уместится в maxWidth
       while (textWidth > maxWidth && fontSize > 10) {
         fontSize -= 2;
         ctx.font = `bold ${fontSize}px Arial`;
@@ -397,13 +398,14 @@
             removeFreakyBird();
           }
 
-          // Победа на 10 очках (для теста)
-          if (score === 10) {
+          // Победа на 100 очках
+          if (score === 100) {
             gameWon = true;
             obstacles = [];
             crabSize = grid * 3;
             freakyBird = null;
-            if (winSound) winSound.play(); // Проигрываем звук победы
+            if (winSound) winSound.play();
+            restartButton.style.display = "block"; // Показываем кнопку рестарта
             console.log("You won! Crab size increased, obstacles removed.");
           }
         }
@@ -463,13 +465,13 @@
       // Отображение очков
       ctx.fillStyle = "#fff";
       ctx.font = "20px Arial";
-      ctx.textAlign = "left"; // Возвращаем выравнивание для очков
+      ctx.textAlign = "left";
       ctx.fillText("Score: " + score, 10, 20);
 
       // Отображение надписи при победе
       if (gameWon) {
         const winText = "CONGRATS! U PRUVED UR LOVE TO FERRIS!";
-        const maxWidth = canvas.width - 40; // Отступы по 20px с каждой стороны
+        const maxWidth = canvas.width - 40;
         const fontSize = fitTextToWidth(winText, maxWidth);
 
         ctx.fillStyle = "#ff69b4";
@@ -479,7 +481,7 @@
       }
     }
 
-    // Запуск игры по кнопке
+    // Запуск игры по кнопке Start
     startButton.addEventListener("click", () => {
       if (!gameStarted) {
         console.log("Game started");
@@ -490,6 +492,11 @@
         if (startSound) startSound.play();
         loop();
       }
+    });
+
+    // Перезапуск игры по кнопке Restart
+    restartButton.addEventListener("click", () => {
+      resetGame();
     });
 
     startButton.disabled = true;
