@@ -70,10 +70,13 @@
     let score = 0;
     let gameStarted = false;
     let frame = 0;
-    const frameDelay = 12; // Фиксированная скорость
+    const frameDelay = 12;
     let obstaclesCleared = false;
     let obstaclesClearedTime = 0;
     const obstaclesClearDuration = 15 * 60;
+    let obstacleImmunity = false; // Флаг иммунитета к препятствиям
+    let obstacleImmunityTime = 0; // Время начала иммунитета
+    const obstacleImmunityDuration = 5 * 60; // 5 секунд при 60 кадрах в секунду
 
     // Препятствия
     let obstacles = [
@@ -159,7 +162,7 @@
         attempts++;
         if (attempts > maxAttempts) {
           console.error("Cannot find a safe position for food!");
-          newFood = { x: 400, y: 200 }; // Запасная позиция
+          newFood = { x: 400, y: 200 };
           break;
         }
       } while (obstacles.some(ob => ob.x === newFood.x && ob.y === newFood.y));
@@ -179,7 +182,7 @@
         attempts++;
         if (attempts > maxAttempts) {
           console.error("Cannot find a safe position for new obstacle!");
-          return; // Если не нашли место, пропускаем
+          return;
         }
       } while (
         obstacles.some(ob => ob.x === newObstacle.x && ob.y === newObstacle.y) ||
@@ -191,11 +194,10 @@
       console.log("New obstacle spawned! Total obstacles:", obstacles.length);
     }
 
-    // Генерация бонуса (с очень низкой вероятностью)
+    // Генерация бонуса
     function trySpawnBonus() {
       if (bonus || obstaclesCleared) return;
 
-      // 0.1% шанс за кадр (примерно раз в 1000 кадров)
       if (Math.random() < 0.001) {
         let newBonus;
         let attempts = 0;
@@ -228,8 +230,9 @@
         { x: 300, y: 300 }, { x: 300, y: 320 }, { x: 320, y: 300 }, { x: 320, y: 320 },
         { x: 500, y: 200 }, { x: 100, y: 500 },
       ];
-      // Добавляем дополнительные препятствия в зависимости от текущего счета
-      for (let i = 0; i < score; i++) {
+      // Добавляем дополнительные препятствия каждые 3 очка
+      const additionalObstacles = Math.floor(score / 3);
+      for (let i = 0; i < additionalObstacles; i++) {
         spawnObstacle();
       }
     }
@@ -275,6 +278,8 @@
       freakyBird = null;
       obstaclesCleared = false;
       obstaclesClearedTime = 0;
+      obstacleImmunity = false;
+      obstacleImmunityTime = 0;
       restoreObstacles();
       canvas.style.display = "none";
       startButton.style.display = "block";
@@ -306,9 +311,9 @@
       if (head.y < 0) head.y = canvas.height - grid;
       if (head.y >= canvas.height) head.y = 0;
 
-      // Столкновение с препятствиями или самим собой
-      if (obstacles.some(ob => ob.x === head.x && ob.y === head.y) ||
-          crab.some(seg => seg.x === head.x && seg.y === head.y)) {
+      // Столкновение с препятствиями (без самопересечения)
+      const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
+      if (hasObstacleCollision && !obstacleImmunity) {
         if (gameOverSound) gameOverSound.play();
         alert("Game Over! Score: " + score);
         resetGame();
@@ -322,8 +327,8 @@
         score++;
         if (eatSound) eatSound.play();
         food = randomFood();
-        if (!obstaclesCleared) {
-          spawnObstacle(); // Добавляем новое препятствие при сборе еды
+        if (!obstaclesCleared && score % 3 === 0) { // Добавляем препятствие каждые 3 очка
+          spawnObstacle();
         }
       }
       // Сбор бонуса
@@ -346,7 +351,15 @@
         restoreObstacles();
         obstaclesCleared = false;
         obstaclesClearedTime = 0;
-        console.log("Obstacles restored after 15 seconds!");
+        obstacleImmunity = true; // Даем иммунитет
+        obstacleImmunityTime = frame;
+        console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
+      }
+
+      // Проверяем, закончился ли иммунитет
+      if (obstacleImmunity && (frame - obstacleImmunityTime) >= obstacleImmunityDuration) {
+        obstacleImmunity = false;
+        console.log("Crab immunity ended!");
       }
 
       // Появление FreakyBird при 30 очках
