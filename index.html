@@ -132,8 +132,9 @@
     let score = 0;
     let gameStarted = false;
     let gameWon = false;
-    let frame = 0;
-    const frameDelay = 12;
+    let lastTime = 0;
+    const targetFrameTime = 1000 / 60; // Целевое время кадра для 60 FPS
+    let accumulatedTime = 0;
     let obstaclesCleared = false;
     let obstaclesClearedTime = 0;
     const obstaclesClearDuration = 15 * 60;
@@ -150,6 +151,12 @@
 
     // Определение, является ли устройство мобильным
     const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/.test(navigator.userAgent);
+
+    // Учет Retina-дисплеев и DPI
+    const pixelRatio = window.devicePixelRatio || 1;
+    canvas.width = 800 * pixelRatio;
+    canvas.height = 600 * pixelRatio;
+    ctx.scale(pixelRatio, pixelRatio);
 
     // Масштабирование канваса
     function resizeCanvas() {
@@ -236,13 +243,12 @@
       winSound = new Audio("win.mp3");
       backgroundMusic = new Audio("background.mp3");
 
-      // Установка громкости звуков по заданным настройкам
       startSound.volume = 0.2;
       eatSound.volume = 0.2;
       gameOverSound.volume = 0.1;
       bonusSound.volume = 0.2;
       winSound.volume = 0.2;
-      backgroundMusic.volume = 0.1; // Минимальная громкость для фоновой музыки (10%)
+      backgroundMusic.volume = 0.1;
       backgroundMusic.loop = true;
 
       console.log("Sounds initialized with custom volumes, background music at 10% volume");
@@ -269,13 +275,13 @@
 
       do {
         newFood = {
-          x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
-          y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+          x: Math.floor(Math.random() * (canvas.width / grid / pixelRatio)) * grid,
+          y: Math.floor(Math.random() * (canvas.height / grid / pixelRatio)) * grid
         };
         attempts++;
         if (attempts > maxAttempts) {
           console.error("Cannot find a safe position for food!");
-          newFood = { x: canvas.width / 2, y: canvas.height / 2 };
+          newFood = { x: canvas.width / 2 / pixelRatio, y: canvas.height / 2 / pixelRatio };
           break;
         }
       } while (
@@ -295,8 +301,8 @@
       const maxAttempts = 100;
       do {
         newObstacle = {
-          x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
-          y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+          x: Math.floor(Math.random() * (canvas.width / grid / pixelRatio)) * grid,
+          y: Math.floor(Math.random() * (canvas.height / grid / pixelRatio)) * grid
         };
         attempts++;
         if (attempts > maxAttempts) {
@@ -323,8 +329,8 @@
         const maxAttempts = 100;
         do {
           newBonus = {
-            x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
-            y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+            x: Math.floor(Math.random() * (canvas.width / grid / pixelRatio)) * grid,
+            y: Math.floor(Math.random() * (canvas.height / grid / pixelRatio)) * grid
           };
           attempts++;
           if (attempts > maxAttempts) {
@@ -392,7 +398,7 @@
     }
 
     // Движение FreakyBird к крабу
-    function moveFreakyBird() {
+    function moveFreakyBird(deltaTime) {
       if (!freakyBird || gameWon) return;
 
       const crabHead = crab[0];
@@ -401,8 +407,8 @@
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
       if (distance > 0) {
-        freakyBird.x += (deltaX / distance) * freakyBird.speed;
-        freakyBird.y += (deltaY / distance) * freakyBird.speed;
+        freakyBird.x += (deltaX / distance) * freakyBird.speed * (deltaTime / 16.67); // Нормализация по времени
+        freakyBird.y += (deltaY / distance) * freakyBird.speed * (deltaTime / 16.67);
       }
 
       if (checkCollision(crabHead, crabSize, freakyBird, freakyBirdSize)) {
@@ -467,25 +473,25 @@
     });
 
     // Сенсорное управление (свайпы)
+    let isTouching = false;
     canvas.addEventListener("touchstart", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
+      if (!gameStarted || gameWon || isTouching) return;
+      isTouching = true;
       const touch = e.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
     });
 
     canvas.addEventListener("touchmove", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
+      if (!gameStarted || gameWon || !isTouching) return;
       const touch = e.touches[0];
       touchEndX = touch.clientX;
       touchEndY = touch.clientY;
     });
 
     canvas.addEventListener("touchend", e => {
-      if (!gameStarted || gameWon) return;
-      e.preventDefault();
+      if (!gameStarted || gameWon || !isTouching) return;
+      isTouching = false;
 
       const deltaX = touchEndX - touchStartX;
       const deltaY = touchEndY - touchStartY;
@@ -503,36 +509,32 @@
 
     // Управление через виртуальные кнопки
     upButton.addEventListener("touchstart", e => {
-      e.preventDefault();
       if (!gameStarted || gameWon || dy !== 0) return;
       dy = -grid;
       dx = 0;
     });
 
     downButton.addEventListener("touchstart", e => {
-      e.preventDefault();
       if (!gameStarted || gameWon || dy !== 0) return;
       dy = grid;
       dx = 0;
     });
 
     leftButton.addEventListener("touchstart", e => {
-      e.preventDefault();
       if (!gameStarted || gameWon || dx !== 0) return;
       dx = -grid;
       dy = 0;
     });
 
     rightButton.addEventListener("touchstart", e => {
-      e.preventDefault();
       if (!gameStarted || gameWon || dx !== 0) return;
       dx = grid;
       dy = 0;
     });
 
     [upButton, downButton, leftButton, rightButton].forEach(button => {
-      button.addEventListener("touchend", e => e.preventDefault());
-      button.addEventListener("touchmove", e => e.preventDefault());
+      button.addEventListener("touchend", e => {});
+      button.addEventListener("touchmove", e => {});
     });
 
     // Функция для подгонки текста по ширине
@@ -552,104 +554,117 @@
       return fontSize;
     }
 
-    // Основной игровой цикл
-    function loop() {
+    // Основной игровой цикл с временным шагом
+    function loop(currentTime) {
       if (!gameStarted) return;
 
       requestAnimationFrame(loop);
 
-      if (++frame % frameDelay !== 0) return;
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
 
-      if (!gameWon) {
-        const head = { x: crab[0].x + dx, y: crab[0].y + dy };
+      accumulatedTime += deltaTime;
 
-        // Телепортация при столкновении со стенами
-        if (head.x < 0) head.x = canvas.width - grid;
-        if (head.x >= canvas.width) head.x = 0;
-        if (head.y < 0) head.y = canvas.height - grid;
-        if (head.y >= canvas.height) head.y = 0;
+      // Обновляем игру с фиксированным шагом
+      while (accumulatedTime >= targetFrameTime) {
+        if (!gameWon) {
+          const head = { x: crab[0].x + dx, y: crab[0].y + dy };
 
-        // Столкновение с препятствиями
-        const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
-        if (hasObstacleCollision && !obstacleImmunity) {
-          if (gameOverSound) gameOverSound.play();
-          alert("Game Over! Score: " + score);
-          resetGame();
-          return;
-        }
+          // Телепортация при столкновении со стенами
+          if (head.x < 0) head.x = canvas.width / pixelRatio - grid;
+          if (head.x >= canvas.width / pixelRatio) head.x = 0;
+          if (head.y < 0) head.y = canvas.height / pixelRatio - grid;
+          if (head.y >= canvas.height / pixelRatio) head.y = 0;
 
-        crab.unshift(head);
-
-        // Сбор еды
-        let scoreIncreased = false;
-        if (head.x === food.x && head.y === food.y) {
-          score++;
-          scoreIncreased = true;
-          if (eatSound) eatSound.play();
-          food = randomFood();
-          if (!obstaclesCleared && score % 3 === 0) {
-            spawnObstacle();
+          // Столкновение с препятствиями
+          const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
+          if (hasObstacleCollision && !obstacleImmunity) {
+            if (gameOverSound) gameOverSound.play();
+            alert("Game Over! Score: " + score);
+            resetGame();
+            return;
           }
-        }
-        // Сбор бонуса
-        else if (bonus && head.x === bonus.x && head.y === bonus.y) {
-          score += 5;
-          scoreIncreased = true;
-          if (bonusSound) bonusSound.play();
-          obstacles = [];
-          obstaclesCleared = true;
-          obstaclesClearedTime = frame;
-          bonus = null;
-        } else {
-          crab.pop();
-        }
 
-        // Управление появлением и исчезновением FreakyBird
-        if (scoreIncreased) {
-          updateFreakyBird();
-        }
+          crab.unshift(head);
 
-        // Победа на 100 очках
-        if (score >= 100) {
-          gameWon = true;
-          obstacles = [];
-          crabSize = grid * 3;
-          freakyBird = null;
-          if (winSound) winSound.play();
-          restartButton.style.display = "block";
-          if (isMobile) {
-            controls.style.display = "none";
+          // Сбор еды
+          let scoreIncreased = false;
+          if (head.x === food.x && head.y === food.y) {
+            score++;
+            scoreIncreased = true;
+            if (eatSound) eatSound.play();
+            food = randomFood();
+            if (!obstaclesCleared && score % 3 === 0) {
+              spawnObstacle();
+            }
           }
-          console.log("You won! Crab size increased, obstacles removed.");
+          // Сбор бонуса
+          else if (bonus && head.x === bonus.x && head.y === bonus.y) {
+            score += 5;
+            scoreIncreased = true;
+            if (bonusSound) bonusSound.play();
+            obstacles = [];
+            obstaclesCleared = true;
+            obstaclesClearedTime = 0;
+            bonus = null;
+          } else {
+            crab.pop();
+          }
+
+          // Управление появлением и исчезновением FreakyBird
+          if (scoreIncreased) {
+            updateFreakyBird();
+          }
+
+          // Победа на 100 очках
+          if (score >= 100) {
+            gameWon = true;
+            obstacles = [];
+            crabSize = grid * 3;
+            freakyBird = null;
+            if (winSound) winSound.play();
+            restartButton.style.display = "block";
+            if (isMobile) {
+              controls.style.display = "none";
+            }
+            console.log("You won! Crab size increased, obstacles removed.");
+          }
+
+          // Пробуем заспавнить новый бонус
+          trySpawnBonus();
+
+          // Обновление времени для препятствий
+          obstaclesClearedTime += targetFrameTime / 16.67; // Нормализация времени
+          obstacleImmunityTime += targetFrameTime / 16.67;
+
+          // Проверяем, прошло ли 15 секунд для возвращения препятствий
+          if (obstaclesCleared && obstaclesClearedTime >= obstaclesClearDuration) {
+            restoreObstacles();
+            obstaclesCleared = false;
+            obstaclesClearedTime = 0;
+            obstacleImmunity = true;
+            obstacleImmunityTime = 0;
+            console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
+          }
+
+          // Проверяем, закончился ли иммунитет
+          if (obstacleImmunity && obstacleImmunityTime >= obstacleImmunityDuration) {
+            obstacleImmunity = false;
+            console.log("Crab immunity ended!");
+          }
+
+          // Движение FreakyBird
+          moveFreakyBird(targetFrameTime);
         }
 
-        // Пробуем заспавнить новый бонус
-        trySpawnBonus();
-
-        // Проверяем, прошло ли 15 секунд для возвращения препятствий
-        if (obstaclesCleared && (frame - obstaclesClearedTime) >= obstaclesClearDuration) {
-          restoreObstacles();
-          obstaclesCleared = false;
-          obstaclesClearedTime = 0;
-          obstacleImmunity = true;
-          obstacleImmunityTime = frame;
-          console.log("Obstacles restored after 15 seconds! Crab is immune for 5 seconds.");
-        }
-
-        // Проверяем, закончился ли иммунитет
-        if (obstacleImmunity && (frame - obstacleImmunityTime) >= obstacleImmunityDuration) {
-          obstacleImmunity = false;
-          console.log("Crab immunity ended!");
-        }
-
-        // Движение FreakyBird
-        moveFreakyBird();
+        accumulatedTime -= targetFrameTime;
       }
 
+      // Отрисовка
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Отрисовка препятствий (фиолетовый цвет)
-      ctx.fillStyle = "#800080"; // Фиолетовый
+      // Отрисовка препятствий
+      ctx.fillStyle = "#800080";
       obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, grid, grid));
 
       // Отрисовка еды
@@ -673,13 +688,13 @@
       // Отображение надписи при победе
       if (gameWon) {
         const winText = "CONGRATS! U PRUVED UR LOVE TO FERRIS!";
-        const maxWidth = canvas.width - 40;
+        const maxWidth = canvas.width / pixelRatio - 40;
         const fontSize = fitTextToWidth(winText, maxWidth);
 
         ctx.fillStyle = "#ff69b4";
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(winText, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(winText, canvas.width / 2 / pixelRatio, canvas.height / 2 / pixelRatio);
       }
     }
 
@@ -696,7 +711,8 @@
         }
         if (startSound) startSound.play();
         if (backgroundMusic) backgroundMusic.play();
-        loop();
+        lastTime = performance.now();
+        loop(lastTime);
       }
     });
 
