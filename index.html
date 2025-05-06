@@ -135,6 +135,8 @@
     let lastTime = 0;
     const targetFrameTime = 1000 / 60; // Целевое время кадра для 60 FPS
     let accumulatedTime = 0;
+    let moveDelay = 0; // Задержка для движения краба
+    const moveInterval = 200; // Задержка в миллисекундах (примерно 12 кадров на 60 FPS)
     let obstaclesCleared = false;
     let obstaclesClearedTime = 0;
     const obstaclesClearDuration = 15 * 60;
@@ -407,7 +409,7 @@
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
       if (distance > 0) {
-        freakyBird.x += (deltaX / distance) * freakyBird.speed * (deltaTime / 16.67); // Нормализация по времени
+        freakyBird.x += (deltaX / distance) * freakyBird.speed * (deltaTime / 16.67);
         freakyBird.y += (deltaY / distance) * freakyBird.speed * (deltaTime / 16.67);
       }
 
@@ -443,6 +445,7 @@
       obstaclesClearedTime = 0;
       obstacleImmunity = false;
       obstacleImmunityTime = 0;
+      moveDelay = 0; // Сбрасываем задержку движения
       restoreObstacles();
       canvas.style.display = "none";
       startButton.style.display = "block";
@@ -564,77 +567,86 @@
       lastTime = currentTime;
 
       accumulatedTime += deltaTime;
+      moveDelay += deltaTime; // Обновляем задержку движения
 
-      // Обновляем игру с фиксированным шагом
+      let shouldUpdateCrab = false;
+      if (moveDelay >= moveInterval) {
+        shouldUpdateCrab = true;
+        moveDelay -= moveInterval; // Сбрасываем задержку
+      }
+
+      // Обновляем игру
       while (accumulatedTime >= targetFrameTime) {
         if (!gameWon) {
-          const head = { x: crab[0].x + dx, y: crab[0].y + dy };
+          if (shouldUpdateCrab) {
+            const head = { x: crab[0].x + dx, y: crab[0].y + dy };
 
-          // Телепортация при столкновении со стенами
-          if (head.x < 0) head.x = canvas.width / pixelRatio - grid;
-          if (head.x >= canvas.width / pixelRatio) head.x = 0;
-          if (head.y < 0) head.y = canvas.height / pixelRatio - grid;
-          if (head.y >= canvas.height / pixelRatio) head.y = 0;
+            // Телепортация при столкновении со стенами
+            if (head.x < 0) head.x = canvas.width / pixelRatio - grid;
+            if (head.x >= canvas.width / pixelRatio) head.x = 0;
+            if (head.y < 0) head.y = canvas.height / pixelRatio - grid;
+            if (head.y >= canvas.height / pixelRatio) head.y = 0;
 
-          // Столкновение с препятствиями
-          const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
-          if (hasObstacleCollision && !obstacleImmunity) {
-            if (gameOverSound) gameOverSound.play();
-            alert("Game Over! Score: " + score);
-            resetGame();
-            return;
-          }
-
-          crab.unshift(head);
-
-          // Сбор еды
-          let scoreIncreased = false;
-          if (head.x === food.x && head.y === food.y) {
-            score++;
-            scoreIncreased = true;
-            if (eatSound) eatSound.play();
-            food = randomFood();
-            if (!obstaclesCleared && score % 3 === 0) {
-              spawnObstacle();
+            // Столкновение с препятствиями
+            const hasObstacleCollision = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
+            if (hasObstacleCollision && !obstacleImmunity) {
+              if (gameOverSound) gameOverSound.play();
+              alert("Game Over! Score: " + score);
+              resetGame();
+              return;
             }
-          }
-          // Сбор бонуса
-          else if (bonus && head.x === bonus.x && head.y === bonus.y) {
-            score += 5;
-            scoreIncreased = true;
-            if (bonusSound) bonusSound.play();
-            obstacles = [];
-            obstaclesCleared = true;
-            obstaclesClearedTime = 0;
-            bonus = null;
-          } else {
-            crab.pop();
-          }
 
-          // Управление появлением и исчезновением FreakyBird
-          if (scoreIncreased) {
-            updateFreakyBird();
-          }
+            crab.unshift(head);
 
-          // Победа на 100 очках
-          if (score >= 100) {
-            gameWon = true;
-            obstacles = [];
-            crabSize = grid * 3;
-            freakyBird = null;
-            if (winSound) winSound.play();
-            restartButton.style.display = "block";
-            if (isMobile) {
-              controls.style.display = "none";
+            // Сбор еды
+            let scoreIncreased = false;
+            if (head.x === food.x && head.y === food.y) {
+              score++;
+              scoreIncreased = true;
+              if (eatSound) eatSound.play();
+              food = randomFood();
+              if (!obstaclesCleared && score % 3 === 0) {
+                spawnObstacle();
+              }
             }
-            console.log("You won! Crab size increased, obstacles removed.");
+            // Сбор бонуса
+            else if (bonus && head.x === bonus.x && head.y === bonus.y) {
+              score += 5;
+              scoreIncreased = true;
+              if (bonusSound) bonusSound.play();
+              obstacles = [];
+              obstaclesCleared = true;
+              obstaclesClearedTime = 0;
+              bonus = null;
+            } else {
+              crab.pop();
+            }
+
+            // Управление появлением и исчезновением FreakyBird
+            if (scoreIncreased) {
+              updateFreakyBird();
+            }
+
+            // Победа на 100 очках
+            if (score >= 100) {
+              gameWon = true;
+              obstacles = [];
+              crabSize = grid * 3;
+              freakyBird = null;
+              if (winSound) winSound.play();
+              restartButton.style.display = "block";
+              if (isMobile) {
+                controls.style.display = "none";
+              }
+              console.log("You won! Crab size increased, obstacles removed.");
+            }
           }
 
           // Пробуем заспавнить новый бонус
           trySpawnBonus();
 
           // Обновление времени для препятствий
-          obstaclesClearedTime += targetFrameTime / 16.67; // Нормализация времени
+          obstaclesClearedTime += targetFrameTime / 16.67;
           obstacleImmunityTime += targetFrameTime / 16.67;
 
           // Проверяем, прошло ли 15 секунд для возвращения препятствий
