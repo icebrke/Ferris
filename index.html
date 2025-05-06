@@ -227,22 +227,25 @@
     freakyBirdImg.onerror = () => console.error("Error loading freakybird.png");
 
     // Загрузка звуков и установка громкости
-    let startSound, eatSound, gameOverSound, bonusSound, winSound;
+    let startSound, eatSound, gameOverSound, bonusSound, winSound, backgroundMusic;
     try {
       startSound = new Audio("start.mp3");
       eatSound = new Audio("eat.mp3");
       gameOverSound = new Audio("gameover.mp3");
       bonusSound = new Audio("bonus.mp3");
       winSound = new Audio("win.mp3");
+      backgroundMusic = new Audio("background.mp3"); // Фоновая музыка
 
-      // Уменьшаем громкость на 60% (оставляем 40% от полной громкости)
+      // Уменьшаем громкость на 60% (оставляем 40% от полной громкости) для звуков
       startSound.volume = 0.2;
       eatSound.volume = 0.2;
       gameOverSound.volume = 0.1;
       bonusSound.volume = 0.2;
       winSound.volume = 0.2;
+      backgroundMusic.volume = 0.1; // Минимальная громкость для фоновой музыки (10%)
+      backgroundMusic.loop = true; // Бесконечный цикл
 
-      console.log("Sounds initialized with 40% volume");
+      console.log("Sounds initialized with 40% volume, background music at 10% volume");
     } catch (e) {
       console.error("Error loading sounds:", e);
     }
@@ -444,6 +447,8 @@
       if (isMobile) {
         controls.style.display = "none";
       }
+      if (backgroundMusic) backgroundMusic.pause(); // Останавливаем фоновую музыку
+      if (backgroundMusic) backgroundMusic.currentTime = 0; // Сбрасываем на начало
     }
 
     // Управление с клавиатуры (стрелки + WASD)
@@ -692,6 +697,7 @@
           controls.style.display = "flex";
         }
         if (startSound) startSound.play();
+        if (backgroundMusic) backgroundMusic.play(); // Запускаем фоновую музыку
         loop();
       }
     });
