@@ -158,7 +158,7 @@
       let maxHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
 
       if (isMobile) {
-        maxHeight -= 120; // Оставляем место для кнопок
+        maxHeight -= 120;
       }
 
       let newWidth = maxWidth;
@@ -226,7 +226,7 @@
     };
     freakyBirdImg.onerror = () => console.error("Error loading freakybird.png");
 
-    // Загрузка звуков
+    // Загрузка звуков и установка громкости
     let startSound, eatSound, gameOverSound, bonusSound, winSound;
     try {
       startSound = new Audio("start.mp3");
@@ -234,7 +234,15 @@
       gameOverSound = new Audio("gameover.mp3");
       bonusSound = new Audio("bonus.mp3");
       winSound = new Audio("win.mp3");
-      console.log("Sounds initialized");
+
+      // Уменьшаем громкость на 60% (оставляем 40% от полной громкости)
+      startSound.volume = 0.4;
+      eatSound.volume = 0.4;
+      gameOverSound.volume = 0.4;
+      bonusSound.volume = 0.4;
+      winSound.volume = 0.4;
+
+      console.log("Sounds initialized with 40% volume");
     } catch (e) {
       console.error("Error loading sounds:", e);
     }
