@@ -234,18 +234,18 @@
       gameOverSound = new Audio("gameover.mp3");
       bonusSound = new Audio("bonus.mp3");
       winSound = new Audio("win.mp3");
-      backgroundMusic = new Audio("background.mp3"); // Фоновая музыка
+      backgroundMusic = new Audio("background.mp3");
 
-      // Уменьшаем громкость на 60% (оставляем 40% от полной громкости) для звуков
+      // Установка громкости звуков по заданным настройкам
       startSound.volume = 0.2;
       eatSound.volume = 0.2;
       gameOverSound.volume = 0.1;
       bonusSound.volume = 0.2;
       winSound.volume = 0.2;
       backgroundMusic.volume = 0.1; // Минимальная громкость для фоновой музыки (10%)
-      backgroundMusic.loop = true; // Бесконечный цикл
+      backgroundMusic.loop = true;
 
-      console.log("Sounds initialized with 40% volume, background music at 10% volume");
+      console.log("Sounds initialized with custom volumes, background music at 10% volume");
     } catch (e) {
       console.error("Error loading sounds:", e);
     }
@@ -414,11 +414,9 @@
 
     // Функция для управления появлением и исчезновением FreakyBird
     function updateFreakyBird() {
-      // Появление FreakyBird
       if ((score === 20 || score === 50 || score === 75) && !freakyBird) {
         spawnFreakyBird();
       }
-      // Исчезновение FreakyBird
       if ((score === 25 || score === 55 || score === 80) && freakyBird) {
         removeFreakyBird();
       }
@@ -447,8 +445,8 @@
       if (isMobile) {
         controls.style.display = "none";
       }
-      if (backgroundMusic) backgroundMusic.pause(); // Останавливаем фоновую музыку
-      if (backgroundMusic) backgroundMusic.currentTime = 0; // Сбрасываем на начало
+      if (backgroundMusic) backgroundMusic.pause();
+      if (backgroundMusic) backgroundMusic.currentTime = 0;
     }
 
     // Управление с клавиатуры (стрелки + WASD)
@@ -650,8 +648,8 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Отрисовка препятствий
-      ctx.fillStyle = "#666";
+      // Отрисовка препятствий (фиолетовый цвет)
+      ctx.fillStyle = "#800080"; // Фиолетовый
       obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, grid, grid));
 
       // Отрисовка еды
@@ -697,7 +695,7 @@
           controls.style.display = "flex";
         }
         if (startSound) startSound.play();
-        if (backgroundMusic) backgroundMusic.play(); // Запускаем фоновую музыку
+        if (backgroundMusic) backgroundMusic.play();
         loop();
       }
     });
